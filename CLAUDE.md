@@ -14,8 +14,9 @@ Makefile, the tests, the platform layer, and the front ends.
   are around it.
 - `tests/`: the inputs of the tests, `*.grep` (the lines of the output
   that are compared) and `*.expected`. `tools/runtest.sh` runs one test.
-  `perftsuite.c` checks the move generator against a slow one; after a
-  change to the engine, it must still say ok.
+  `perftsuite.c` checks the move generator against a slow one, and
+  `tablebase.c` the search against touchdown_db's 4x4 database; after a
+  change to the engine, both must still pass.
 - `tools/`: `runtest.sh`; `mockup.py` draws the mockups of the README.
 - `CONTRIBUTING.md`: building and the tests. Keep it, README.md, and
   `make help` in sync with the Makefile.

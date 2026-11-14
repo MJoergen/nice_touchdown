@@ -1,0 +1,33 @@
+seed 1
+new 4x4
+go depth 24
+position ...O/..O./..../.XX. x
+go depth 8
+position ...O/..O./..X./.X.. x
+go depth 8
+position .O../..../.O../X.X. x
+go depth 24
+position O.../.X../..../...X x
+go depth 4
+position ..../..../..../X..O x
+go
+go depth 0
+go depth 33
+go fast
+depth 0
+depth 4
+new 6x4
+go
+go
+new 8x6
+depth 8
+go
+go
+go
+undo
+undo
+seed 7
+go
+go
+seed x
+quit

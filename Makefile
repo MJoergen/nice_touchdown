@@ -1,16 +1,19 @@
 # nice_touchdown: the game of TouchDown for the NICE system.
 #
-# The NICE toolchain comes from nice_cpu at a pinned release tag. make
-# deps fetches it into deps/. NICE_CPU=DIR and NICEEMU=PATH use local
+# The NICE toolchain comes from nice_cpu at a pinned release tag, and
+# touchdown_db, which has the value of every 4x4 position, at a pinned
+# commit. make deps fetches them into deps/. NICE_CPU=DIR and NICEEMU=PATH use local
 # copies of nice_cpu and niceemu instead. make help lists the targets.
 
 NICE_CPU_TAG    := V2.0
 NICEEMU_SHA256  := 7726cfdf6c86513d156ed75e52c287a7d88ef0c82c7bb49fa02558dde0cf7cf1
+TOUCHDOWN_DB_COMMIT := 2e00db4dbc666ff60e656b992d097e92a889d517
 
 NICE_CPU ?= deps/nice_cpu-$(NICE_CPU_TAG)
 NICEEMU  ?= deps/niceemu-$(NICE_CPU_TAG)-x86_64-linux/niceemu
 PYTHON   ?= python3
 CC       ?= cc
+CXX      ?= c++
 # The version the front ends show: the release tag on a tagged commit,
 # such as V1.0, and git describe's name of the commit between tags.
 # tools/runtest.sh replaces it with VERSION in the output, so the tests
@@ -21,6 +24,8 @@ export NICEEMU VERSION
 NICEBUILD  = $(PYTHON) $(NICE_CPU)/translator/nicebuild.py
 RELEASE_URL = https://github.com/MJoergen/nice_cpu/releases/download/$(NICE_CPU_TAG)
 NICEEMU_TGZ = niceemu-$(NICE_CPU_TAG)-x86_64-linux.tar.gz
+TOUCHDOWN_DB_RAW = https://raw.githubusercontent.com/MJoergen/touchdown_db/$(TOUCHDOWN_DB_COMMIT)
+TOUCHDOWN_DB_SRC = main.cpp index.cpp board.h index.h tablebase.h
 
 # The engine: no I/O, no clock, no malloc, so the same files build for
 # NICE and for the host.
@@ -49,7 +54,7 @@ help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
 	@echo ""
 	@echo "  make help          show this text (the default)"
-	@echo "  make deps          fetch nice_cpu $(NICE_CPU_TAG) and niceemu $(NICE_CPU_TAG) into deps/"
+	@echo "  make deps          fetch nice_cpu $(NICE_CPU_TAG), niceemu $(NICE_CPU_TAG), and touchdown_db into deps/"
 	@echo "  make all           build the text front end, for niceemu, for the MEGA65, and for the host"
 	@echo "  make test          the tests, on the host and in niceemu"
 	@echo "  make perft-deep    the perft suite to depth 6, and 10000 games a size, on the host (a minute)"
@@ -111,23 +116,50 @@ build/nice/perftsuite.bin: $(ENGINE) $(HEADERS) tests/perftsuite.c $(TOOLCHAIN)
 	@mkdir -p $(@D)
 	$(NICEBUILD) $(NICEFLAGS) -D PERFT_DEPTH=2 -D PERFT_GAMES=4 -o $@ $(ENGINE) tests/perftsuite.c
 
+# touchdown_db, and its database of the 4x4 board: the value of every
+# position with at most 4 pawns a side (tests/tablebase.c). It needs
+# <cstdint> included, which its sources leave to older compilers, and
+# it keeps a file of its work at /tmp/touchdown.known, which the build
+# moves into build/.
+build/host/touchdown_db: $(addprefix deps/touchdown_db/,$(TOUCHDOWN_DB_SRC))
+	@mkdir -p $(@D) build/gen
+	sed 's|/tmp/touchdown.known|$(abspath build/gen/touchdown.known)|' deps/touchdown_db/main.cpp > build/gen/touchdown_db.cpp
+	$(CXX) -O2 -include cstdint -I deps/touchdown_db -o $@ build/gen/touchdown_db.cpp deps/touchdown_db/index.cpp
+
+build/gen/touchdown4x4.txt: build/host/touchdown_db
+	rm -f build/gen/touchdown.tb build/gen/touchdown.known
+	build/host/touchdown_db build/gen/touchdown.tb > /dev/null
+	build/host/touchdown_db -d build/gen/touchdown.tb > $@.tmp
+	mv $@.tmp $@
+
+deps/touchdown_db/%:
+	@mkdir -p $(@D)
+	curl -sSfL -o $@ $(TOUCHDOWN_DB_RAW)/$*
+
+build/host/tablebase: $(ENGINE) $(HEADERS) tests/tablebase.c
+	@mkdir -p $(@D)
+	$(CC) $(HOSTFLAGS) -o $@ $(ENGINE) tests/tablebase.c
+
 test: host-test nice-test
 
-host-test: build/host/td_text build/host/perftsuite
+host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/gen/touchdown4x4.txt
 	@tools/runtest.sh host_text text tests/text.input host build/host/td_text
 	@tools/runtest.sh host_perft perft tests/perft.input host build/host/td_text
 	@tools/runtest.sh host_perftsuite5 perftsuite5 /dev/null host build/host/perftsuite 5 1000
+	@tools/runtest.sh host_tablebase tablebase build/gen/touchdown4x4.txt host build/host/tablebase 24
+	@tools/runtest.sh host_search search tests/search.input host build/host/td_text
 
 nice-test: build/nice/td_text.bin build/test/mon_td_text.bin build/nice/perftsuite.bin | $(NICEEMU)
 	@tools/runtest.sh nice_text text tests/text.input nice build/nice/td_text.bin
 	@tools/runtest.sh nice_perft perft tests/perft.input nice build/nice/td_text.bin
+	@tools/runtest.sh nice_search search tests/search.input nice build/nice/td_text.bin
 	@tools/runtest.sh mega65_text text tests/text.input nice build/test/mon_td_text.bin
 	@tools/runtest.sh nice_perftsuite2 perftsuite2 /dev/null nice build/nice/perftsuite.bin
 
 perft-deep: build/host/perftsuite
 	@tools/runtest.sh host_perftsuite6 perftsuite6 /dev/null host build/host/perftsuite 6 10000
 
-deps: $(NICE_CPU) $(NICEEMU)
+deps: $(NICE_CPU) $(NICEEMU) $(addprefix deps/touchdown_db/,$(TOUCHDOWN_DB_SRC))
 
 deps/nice_cpu-$(NICE_CPU_TAG):
 	git clone --quiet --depth 1 --branch $(NICE_CPU_TAG) -c advice.detachedHead=false \

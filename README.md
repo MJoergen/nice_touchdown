@@ -8,9 +8,8 @@ entered by the keyboard, in the same way as
 those of [touchdown_db](https://github.com/MJoergen/touchdown_db), which
 solves the 4x4 board.
 
-Status: the board, the move generator, and the text front end are
-built and tested; the engine's search and the screen are not built
-yet, and `go` plays the first legal move. This
+Status: the engine (the board, the move generator, and the search) and
+the text front end are built and tested; the screen is not built yet. This
 README is the design. Each section says what is planned for the first
 version, and the last section what may come after.
 
@@ -114,8 +113,10 @@ The text front end has commands such as:
     a1a2           make a move
     moves          list the legal moves
     undo           take back the last move
-    go             the engine moves
+    go             the engine searches to the depth set and moves
     go depth 6     the engine searches to depth 6 and moves
+    depth 10       the depth of go, 1 to 32 (8 at first)
+    seed 1         the seed of the engine's choice among Even moves
     d              show the board
     perft 5        count the positions 5 moves ahead
     divide 5       perft 5, for each legal move
@@ -177,11 +178,18 @@ no loop over squares.
 
 ### Checking it
 
-The 4x4 board can be checked against touchdown_db: at a depth large
-enough to reach the end of every game, the engine's value of each
-position must be touchdown_db's. For larger boards, perft counts from
-the host build are compared with those of a plain, slow move
-generator.
+The 4x4 board is checked against touchdown_db: at depth 24, which
+reaches the end of every game, the engine's value of each of its
+755591 positions is touchdown_db's, the move it plays in a win leads
+to a loss for the opponent, and a win in N is followed by a loss in
+N - 1. For every size, the move generator is checked against a plain,
+slow one, at every node of the move tree from the start and of games
+at random to their end.
+
+The search costs about 450 steps a node in niceemu, and each ply about
+2.8 times the one before. From the start, depth 8 takes 0.4 seconds
+on the MEGA65 on 8x6 and 3.2 seconds on 12x6, and depth 10 3.3 and 37
+seconds: so depth 8 is the default.
 
 ## After the first version
 

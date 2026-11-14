@@ -158,6 +158,42 @@ int engine_undo(void);
 int engine_result(void);
 
 /***************************************************************
+ * search.c: negamax with alpha-beta pruning, to a fixed depth.
+ ***************************************************************/
+
+// The deepest search, in plies.
+#define ENGINE_MAX_DEPTH 32
+
+// A score, from the side to move: ENGINE_WIN - N is a win in N plies,
+// -(ENGINE_WIN - N) a loss in N plies, and 0 Even: neither is proved
+// within the depth.
+#define ENGINE_WIN 10000
+
+typedef struct
+{
+    move_t move;                   // The move to play; 0 if the game is over
+    int score;                     // Of the move
+    int depth;                     // Searched
+    uint32_t nodes;                // Searched
+    move_t pv[ENGINE_MAX_DEPTH];   // The principal variation, from move
+    int pv_len;
+    int stopped;                   // Whether stop ended it early
+} engine_search_t;
+
+// The seed of the choice at random among the Even moves.
+void engine_seed(uint32_t seed);
+
+// Searches p to depth plies, 1 to ENGINE_MAX_DEPTH, and writes the
+// result to r. It calls stop, if not 0, every 1024 nodes, and ends
+// early when it returns nonzero: then r has the best move of the root
+// moves searched, or the first move.
+void engine_search(const position_t *p, int depth, int (*stop)(void), engine_search_t *r);
+
+// Writes a score as "Even", "Win in N", or "Loss in N" (N in plies)
+// to s, of at least 16 bytes, and returns s.
+char *engine_score_str(int score, char *s);
+
+/***************************************************************
  * perft.c
  ***************************************************************/
 

@@ -9,7 +9,10 @@
  *   moves            the legal moves
  *   M, or move M     make a move, such as a1a2
  *   undo             take back the last move
- *   go               the engine moves
+ *   go [depth N]     the engine searches, to N plies or the depth set,
+ *                    and moves
+ *   depth N          the depth of go, 1 to 32 (8 at first)
+ *   seed N           the seed of the engine's choice among Even moves
  *   perft N          count the paths of the move tree of depth N
  *   divide N         perft N, for each legal move
  *   help             list the commands
@@ -19,7 +22,11 @@
  * divided by '/', with X for White's pawn, O for Black's, and . for
  * an empty square, then the side to move, x or o.
  *
- * go plays the first legal move until the engine has its search.
+ * go prints the search's depth, score, nodes, and principal variation
+ * as "info depth 6 score Even nodes 1234 pv a1a2 ...", then plays the
+ * move. The score is Even, Win in N, or Loss in N, N in plies. Among
+ * Even moves the engine picks one at random, by the seed: from the
+ * clock on a PC and on a board, and 1 in niceemu (platform_seed).
  *
  * Copyright (c) 2026 Michael Jørgensen. MIT license (see LICENSE).
  ***************************************************************/
@@ -107,7 +114,9 @@ static void print_help(void)
            "  moves            the legal moves\n"
            "  M, or move M     make a move, such as a1a2\n"
            "  undo             take back the last move\n"
-           "  go               the engine moves\n"
+           "  go [depth N]     the engine searches, to N plies or the depth set, and moves\n"
+           "  depth N          the depth of go, 1 to 32\n"
+           "  seed N           the seed of the engine's choice among Even moves\n"
            "  perft N          count the paths of the move tree of depth N\n"
            "  divide N         perft N, for each legal move\n"
            "  help             list the commands\n"
@@ -223,15 +232,60 @@ static void do_undo(void)
         printf("No move to take back\n");
 }
 
-static void do_go(void)
+static int search_depth = 8;
+
+static void do_depth(const char *arg)
 {
-    move_t list[ENGINE_MAX_MOVES];
-    if (!engine_moves(engine_position(), list))
+    int d = number(arg, ENGINE_MAX_DEPTH);
+    if (!d)
+        printf("The depth is 1 to %d\n", ENGINE_MAX_DEPTH);
+    else
+        search_depth = d;
+}
+
+static void do_seed(const char *arg)
+{
+    char *end;
+    unsigned long n = strtoul(arg, &end, 10);
+    if (end == arg || *end)
+        printf("The seed is a number\n");
+    else
+        engine_seed((uint32_t) n);
+}
+
+static void do_go(char *arg)
+{
+    int depth = search_depth;
+    char *word = next_word(&arg);
+    if (!strcmp(word, "depth"))
+    {
+        depth = number(next_word(&arg), ENGINE_MAX_DEPTH);
+        if (!depth)
+        {
+            printf("The depth is 1 to %d\n", ENGINE_MAX_DEPTH);
+            return;
+        }
+    }
+    else if (*word)
+    {
+        printf("go [depth N]\n");
+        return;
+    }
+    if (engine_result() != ENGINE_PLAYING)
     {
         printf("The game is over\n");
         return;
     }
-    play(list[0]);
+
+    engine_search_t r;
+    char s[16];
+    engine_search(engine_position(), depth, 0, &r);
+    printf("info depth %d score %s nodes %lu pv", r.depth, engine_score_str(r.score, s),
+           (unsigned long) r.nodes);
+    for (int i = 0; i < r.pv_len; i++)
+        printf(" %s", engine_move_str(r.pv[i], s));
+    printf("\n");
+    play(r.move);
 }
 
 static void do_perft(const char *arg, int divide)
@@ -268,6 +322,7 @@ int main(void)
     static char line[256];
 
     engine_new_game();
+    engine_seed(platform_seed());
     printf("nice_touchdown %s. Type help for the commands.\n", nice_touchdown_version);
 
     while (1)
@@ -301,7 +356,11 @@ int main(void)
         else if (!strcmp(cmd, "undo"))
             do_undo();
         else if (!strcmp(cmd, "go"))
-            do_go();
+            do_go(arg);
+        else if (!strcmp(cmd, "depth"))
+            do_depth(arg);
+        else if (!strcmp(cmd, "seed"))
+            do_seed(arg);
         else if (!strcmp(cmd, "perft"))
             do_perft(arg, 0);
         else if (!strcmp(cmd, "divide"))

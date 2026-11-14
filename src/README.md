@@ -11,6 +11,10 @@
   - `notation.c`: moves as text (`b1b2`), and positions as text
     (`OOOO/..../..../XXXX x`, touchdown_db's letters).
   - `perft.c`: perft.
+  - `search.c`: negamax with alpha-beta pruning to a fixed depth. Its
+    scores are Win in N, Loss in N, and Even; among Even moves the
+    root picks one at random, by the seed. Its positions and move lists
+    are kept by ply in its own data, not on the stack.
   - `game.c`: the game as the front ends see it: its positions, its
     moves, undo, and its result.
 - `platform/`: the clock, the default time of a move, the rate of the
@@ -21,5 +25,5 @@
 - `ui/version.h`: the version the front ends show, from
   `build/gen/version.c`, which the Makefile writes (`VERSION`).
 - `ui/text.c`: the text front end, on the console. `help` lists its
-  commands. Until the engine has its search, `go` plays the first
-  legal move.
+  commands. `go` prints the search as `info depth D score S nodes N
+  pv ...` and plays its move.

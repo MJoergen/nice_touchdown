@@ -6,10 +6,10 @@ run the tests.
 ## Building and testing
 
 Needs Python 3.10+, clang with the wasm32 target, `wasm-ld`, `llvm-ar`,
-a C compiler for the host, `git`, and `curl`.
+a C and a C++ compiler for the host, `git`, and `curl`.
 
     make             # list the targets
-    make deps        # nice_cpu V2.0 and niceemu V2.0 into deps/
+    make deps        # nice_cpu V2.0, niceemu V2.0, and touchdown_db into deps/
     make all         # build/nice/ for niceemu, build/mega65/ for the MEGA65, build/host/td_text for the host
     make test        # the tests, on the host and in niceemu
     make perft-deep  # the perft suite to depth 6, and 10000 games a size, on the host (about 2 minutes)
@@ -32,3 +32,11 @@ at random played to their end, it compares the moves, their order,
 the position after each, and the text of moves and positions. Its
 `.expected` files hold the counts of the tree and how the games ended,
 which the slow generator checks as they are made.
+
+`tests/tablebase.c` checks the search against touchdown_db, at a
+pinned commit, which the build makes and runs to have the value of
+every 4x4 position with at most 4 pawns a side
+(`build/gen/touchdown4x4.txt`, in under a second).
+
+The tests that search set `seed 1`, so that the engine's choice among
+Even moves is the same on the host as in niceemu.

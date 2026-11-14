@@ -6,7 +6,9 @@ Commands:
   moves            the legal moves
   M, or move M     make a move, such as a1a2
   undo             take back the last move
-  go               the engine moves
+  go [depth N]     the engine searches, to N plies or the depth set, and moves
+  depth N          the depth of go, 1 to 32
+  seed N           the seed of the engine's choice among Even moves
   perft N          count the paths of the move tree of depth N
   divide N         perft N, for each legal move
   help             list the commands
