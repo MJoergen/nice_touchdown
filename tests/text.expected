@@ -1,0 +1,6 @@
+nice_touchdown VERSION. Type help for the commands.
+Commands:
+  help            list the commands
+  quit            end the program
+Unknown command: foo. Type help for the commands.
+exit 0

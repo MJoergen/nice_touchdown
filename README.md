@@ -8,9 +8,10 @@ entered by the keyboard, in the same way as
 those of [touchdown_db](https://github.com/MJoergen/touchdown_db), which
 solves the 4x4 board.
 
-Status: nothing is built yet. This README is the design. Each section
-says what is planned for the first version, and the last section what
-may come after.
+Status: the build and the tests are in place, with a text front end
+that knows only `help` and `quit`; the engine is not built yet. This
+README is the design. Each section says what is planned for the first
+version, and the last section what may come after.
 
 ## The game
 
@@ -195,9 +196,9 @@ measured by matches against the version before:
 
 ## Building
 
-Planned to be as in nice_chess: `make deps all` fetches nice_cpu and
-niceemu into `deps/` and builds the front ends, and `make test` runs
-the tests on the host and in niceemu.
+As in nice_chess: `make deps all` fetches nice_cpu and niceemu into
+`deps/` and builds the front ends, and `make test` runs the tests on
+the host and in niceemu. CONTRIBUTING.md has the details.
 
 `tools/mockup.py` draws the mockups above. It needs Pillow and the
 font of nice_cpu's emulator, by default from a nice_chess checkout

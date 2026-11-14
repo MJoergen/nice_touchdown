@@ -1,0 +1,5 @@
+build/
+deps/
+games/
+*.swp
+__pycache__/
