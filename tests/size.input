@@ -1,0 +1,7 @@
+seed 1
+new 12x6
+go
+new 4x4
+go depth 24
+perft 6
+quit

@@ -17,8 +17,12 @@ Makefile, the tests, the platform layer, and the front ends.
   `perftsuite.c` checks the move generator against a slow one, and
   `tablebase.c` the search against touchdown_db's 4x4 database; after a
   change to the engine, both must still pass.
-- `tools/`: `runtest.sh`; `mockup.py` draws the mockups of the README;
+- `tools/`: `runtest.sh`; `size.py` and `board.py`, nice_chess's, for
+  `make size` and the board; `mockup.py` draws the mockups of the README;
   `mkpawns.py` draws the pawns into `src/ui/pawns.h` (`make pawns`).
+- `doc/RELEASE.md`: how to make a release; `RELEASE_NOTES.md`: what
+  changed in each release, newest first. `tools/notes.sh TAG` prints a
+  release's section, for its tag and the release workflow.
 - `CONTRIBUTING.md`: building and the tests. Keep it, README.md, and
   `make help` in sync with the Makefile.
 - `deps/` (fetched by `make deps`) and `build/` are not in git.
@@ -33,6 +37,12 @@ Makefile, the tests, the platform layer, and the front ends.
     make all            # build everything
     make test           # host and niceemu tests; run after every change
     make perft-deep     # the perft suite deeper, on the host; in CI too
+    make size           # the MEGA65 builds against the 92K-word budget
+    make dist           # the archive of a release in build/dist/ (VERSION=V1.0)
+
+The board targets (`board-*`) need `ETH=IP` or `PORT=DEVICE` and a
+NiceMonMEGA65 checkout (`NICEMON=DIR`). They are not in CI; run them
+only when the user asks, or when a change is for the board.
 
 ## Conventions
 

@@ -1,9 +1,11 @@
 #!/bin/sh
-# runtest.sh NAME CHECK INPUT host|nice|screen PROGRAM [ARGS...]
+# runtest.sh NAME CHECK INPUT host|nice|screen|board PROGRAM [ARGS...]
 #
-# Runs PROGRAM with INPUT as its console input, on the host or in
+# Runs PROGRAM with INPUT as its console input, on the host, in
 # niceemu ($NICEEMU, with --step-time, so that its clock counts steps),
-# and leaves its output in build/test/NAME.raw. screen is nice with
+# or on the board under its monitor (board, through tools/board.py,
+# with the link in $BOARDLINK, such as "--eth 192.168.1.65"), and
+# leaves its output in build/test/NAME.raw. screen is nice with
 # --color, so that the screen at the halt, with its colors, is in the
 # output too.
 #
@@ -23,7 +25,15 @@ mkdir -p $dir
 raw=$dir/$name.raw
 out=$dir/$name.out
 
-if [ "$kind" = nice ] || [ "$kind" = screen ]; then
+if [ "$kind" = board ]; then
+    python3 tools/board.py $BOARDLINK -i "$input" "$prog" < /dev/null > $raw
+    r=$(grep -o '^Returned [0-9a-f]*' $raw | cut -c10-)
+    if [ -n "$r" ]; then
+        status=$(( 0x$r ))
+    else
+        status="none (the program did not return to the monitor)"
+    fi
+elif [ "$kind" = nice ] || [ "$kind" = screen ]; then
     color=
     [ "$kind" = screen ] && color=--color
     "$NICEEMU" --step-time $color -i "$input" "$prog" < /dev/null > $raw

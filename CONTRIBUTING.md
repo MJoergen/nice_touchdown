@@ -13,10 +13,21 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make all         # build/nice/ for niceemu, build/mega65/ for the MEGA65, build/host/td_text for the host
     make test        # the tests, on the host and in niceemu
     make pawns       # draw the pawns again into src/ui/pawns.h, after a change to tools/mkpawns.py (needs Pillow)
+    make size        # the size of the MEGA65 builds, against the 92K words the monitor leaves them
+    make dist        # the archive of a release, and SHA256SUMS, in build/dist/
     make perft-deep  # the perft suite to depth 6, and 10000 games a size, on the host (about 2 minutes)
 
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
-and `NICEEMU=PATH` to make.
+and `NICEEMU=PATH` to make. `make dist` links the host build statically,
+which needs glibc's static library: `libc6-dev` on Debian and Ubuntu,
+`glibc-static` on Fedora.
+
+On a MEGA65 under NiceMonMEGA65's monitor, with `ETH=IP` or
+`PORT=DEVICE`, and a checkout of NiceMonMEGA65 (`NICEMON=DIR`):
+
+    make board-text    # run the text front end, and talk to it over the line
+    make board-screen  # run the windowed front end, for the screen and keyboard
+    make board-test    # the text front end's tests, on the board
 
 ## The tests
 

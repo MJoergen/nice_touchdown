@@ -8,9 +8,10 @@ entered by the keyboard, in the same way as
 those of [touchdown_db](https://github.com/MJoergen/touchdown_db), which
 solves the 4x4 board.
 
-Status: the engine (the board, the move generator, and the search),
-the text front end, and the windowed front end are built and tested in
-niceemu; they are not yet tried on the MEGA65 itself. This
+Status: the first version is built and tested on the host and in
+niceemu, and fits the MEGA65 with room to spare; it is not yet tried on
+the MEGA65 itself, nor released. [RELEASE_NOTES.md](RELEASE_NOTES.md)
+says what it has. This
 README is the design. Each section says what is planned for the first
 version, and the last section what may come after.
 

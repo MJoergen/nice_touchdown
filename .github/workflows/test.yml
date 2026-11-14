@@ -17,3 +17,5 @@ jobs:
         run: make test
       - name: Perft suite to depth 6
         run: make perft-deep
+      - name: Size
+        run: make size

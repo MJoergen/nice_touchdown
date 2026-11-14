@@ -11,6 +11,7 @@ TOUCHDOWN_DB_COMMIT := 2e00db4dbc666ff60e656b992d097e92a889d517
 
 NICE_CPU ?= deps/nice_cpu-$(NICE_CPU_TAG)
 NICEEMU  ?= deps/niceemu-$(NICE_CPU_TAG)-x86_64-linux/niceemu
+NICEMON  ?= ../NiceMonMEGA65
 PYTHON   ?= python3
 CC       ?= cc
 CXX      ?= c++
@@ -19,7 +20,17 @@ CXX      ?= c++
 # tools/runtest.sh replaces it with VERSION in the output, so the tests
 # do not depend on it.
 VERSION  ?= $(shell git describe --tags --match 'V[0-9]*' --always --dirty 2>/dev/null || echo unknown)
-export NICEEMU VERSION
+export NICEEMU NICEMON VERSION
+
+# How to reach the board: ETH=IP or PORT=DEVICE, as NiceMonMEGA65's tools
+# take them. Only the board targets need one.
+BOARDLINK = $(if $(ETH),--eth $(ETH),$(if $(PORT),--port $(PORT),$(error ETH=IP or PORT=DEVICE names the board)))
+
+# The MEGA65 gives a program under the monitor the words 0x8000 to
+# 0x1EFFF, 92K, for its image, its linear memory, and the NICE stack,
+# which the monitor's routines share and use at most 32 words of
+# (NiceMonMEGA65 V1.2.1).
+BUDGET = 94176
 
 NICEBUILD  = $(PYTHON) $(NICE_CPU)/translator/nicebuild.py
 RELEASE_URL = https://github.com/MJoergen/nice_cpu/releases/download/$(NICE_CPU_TAG)
@@ -48,8 +59,14 @@ MONFLAGS = $(NICEFLAGS) --monitor
 
 # The host: with asserts.
 HOSTFLAGS = -O2 -W -Wall -Wextra
+# The host, for the release: without asserts, which play the same
+# moves, only faster, and linked statically, so that the release's
+# binary runs on any x86_64 Linux. It needs glibc's libc.a: libc6-dev
+# on Debian and Ubuntu, glibc-static on Fedora.
+FASTFLAGS = -O2 -W -Wall -Wextra -DNDEBUG -static
 
-.PHONY: FORCE help all test host-test nice-test perft-deep pawns deps clean distclean
+.PHONY: FORCE help all test host-test nice-test perft-deep pawns size deps clean distclean dist
+.PHONY: board-text board-screen board-test
 help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
 	@echo ""
@@ -58,9 +75,19 @@ help:
 	@echo "  make all           build both front ends, for niceemu and for the MEGA65, and the text one for the host"
 	@echo "  make test          the tests, on the host and in niceemu"
 	@echo "  make perft-deep    the perft suite to depth 6, and 10000 games a size, on the host (a minute)"
+	@echo "  make size          the size of the MEGA65 builds, against the board's budget"
 	@echo "  make pawns         draw the pawns again into src/ui/pawns.h (needs Pillow)"
+	@echo "  make dist          the archive of a release, and SHA256SUMS, in build/dist/ (VERSION=V1.0)"
 	@echo "  make clean         remove build/"
 	@echo "  make distclean     remove build/ and deps/"
+	@echo ""
+	@echo "On the MEGA65, under NiceMonMEGA65's monitor, with ETH=IP (the board's"
+	@echo "Ethernet port) or PORT=/dev/ttyUSBn (its debug UART), and the tools of a"
+	@echo "checkout of NiceMonMEGA65 (NICEMON=DIR, ../NiceMonMEGA65 by default):"
+	@echo ""
+	@echo "  make board-text    load and run the text front end, then talk to it over the line"
+	@echo "  make board-screen  load and run the windowed front end, for the screen and keyboard"
+	@echo "  make board-test    the tests of the text front end, on the board"
 	@echo ""
 	@echo "NICE_CPU=DIR and NICEEMU=PATH use local copies of nice_cpu and niceemu."
 
@@ -123,6 +150,10 @@ build/host/td_text: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/host.c $(VER
 # against a slow one, on every size of board. On NICE, which passes no
 # arguments, the depth and the games are set when it is built; the
 # checks are slow there, about 40 million steps a game.
+build/host/td_fast: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/host.c $(VERSIONC)
+	@mkdir -p $(@D)
+	$(CC) $(FASTFLAGS) -o $@ $(ENGINE) $(VERSIONC) src/ui/text.c src/platform/host.c
+
 build/host/perftsuite: $(ENGINE) $(HEADERS) tests/perftsuite.c
 	@mkdir -p $(@D)
 	$(CC) $(HOSTFLAGS) -o $@ $(ENGINE) tests/perftsuite.c
@@ -180,6 +211,54 @@ nice-test: build/nice/td_text.bin build/test/mon_td_text.bin build/nice/perftsui
 
 perft-deep: build/host/perftsuite
 	@tools/runtest.sh host_perftsuite6 perftsuite6 /dev/null host build/host/perftsuite 6 10000
+
+# The size of the MEGA65 builds, and the peaks of their stacks in a run
+# of a search to depth 24 and of the screen's test.
+size: build/mega65/td_text.bin build/mega65/td_screen.bin build/test/mon_td_text.bin build/test/mon_td_screen.bin | $(NICEEMU)
+	$(PYTHON) tools/size.py --emu $(NICEEMU) --input tests/size.input --run build/test/mon_td_text.bin \
+	  --budget $(BUDGET) --check build/mega65/td_text.bin
+	$(PYTHON) tools/size.py --emu $(NICEEMU) --input tests/screen.keys --run build/test/mon_td_screen.bin \
+	  --budget $(BUDGET) --check build/mega65/td_screen.bin
+
+# The board. load.py loads a program under the monitor and types r, which
+# runs it; what it prints then comes on the line, such as nc IP 4510 or
+# picocom -b 2000000 DEVICE (NiceMonMEGA65's tools/README.md).
+board-text: build/mega65/td_text.bin
+	$(PYTHON) $(NICEMON)/tools/load.py $(BOARDLINK) --monitor $<
+
+board-screen: build/mega65/td_screen.bin
+	$(PYTHON) $(NICEMON)/tools/load.py $(BOARDLINK) --monitor $<
+
+# The text front end's tests, on the board. Its searches have a depth,
+# not a time, and set their seed, so the board must give what niceemu
+# does. The windowed front end's moves among Even ones come from the
+# board's clock, so its tests are for niceemu only.
+board-test: build/mega65/td_text.bin
+	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_text text tests/text.input board build/mega65/td_text.bin
+	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_perft perft tests/perft.input board build/mega65/td_text.bin
+	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_search search tests/search.input board build/mega65/td_text.bin
+
+# A release (doc/RELEASE.md): the archive nice_touchdown-VERSION.tar.gz,
+# whose directory holds the MEGA65 builds, under 8.3 names for the
+# monitor's load from the SD card (TD.BIN the windowed front end,
+# TDT.BIN the text front end), the builds for niceemu, the static host
+# build without asserts as nice_touchdown, and README.md,
+# RELEASE_NOTES.md, and LICENSE; and SHA256SUMS. The release workflow
+# runs it with VERSION set to the tag, after the tests and make size.
+DIST = build/dist
+dist: build/mega65/td_text.bin build/mega65/td_screen.bin build/nice/td_text.bin \
+      build/nice/td_screen.bin build/host/td_fast
+	rm -rf $(DIST)
+	mkdir -p $(DIST)/nice_touchdown-$(VERSION)/mega65 $(DIST)/nice_touchdown-$(VERSION)/niceemu \
+	  $(DIST)/nice_touchdown-$(VERSION)/linux-x86_64
+	cp build/mega65/td_screen.bin $(DIST)/nice_touchdown-$(VERSION)/mega65/TD.BIN
+	cp build/mega65/td_text.bin $(DIST)/nice_touchdown-$(VERSION)/mega65/TDT.BIN
+	cp build/nice/td_text.bin build/nice/td_screen.bin $(DIST)/nice_touchdown-$(VERSION)/niceemu/
+	cp build/host/td_fast $(DIST)/nice_touchdown-$(VERSION)/linux-x86_64/nice_touchdown
+	cp README.md RELEASE_NOTES.md LICENSE $(DIST)/nice_touchdown-$(VERSION)/
+	tar czf $(DIST)/nice_touchdown-$(VERSION).tar.gz -C $(DIST) --owner=0 --group=0 nice_touchdown-$(VERSION)
+	cd $(DIST) && sha256sum nice_touchdown-$(VERSION).tar.gz > SHA256SUMS
+	@echo "$(DIST)/nice_touchdown-$(VERSION).tar.gz"
 
 deps: $(NICE_CPU) $(NICEEMU) $(addprefix deps/touchdown_db/,$(TOUCHDOWN_DB_SRC))
 
