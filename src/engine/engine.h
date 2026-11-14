@@ -122,6 +122,42 @@ char *engine_position_str(const position_t *p, char *s);
 #define ENGINE_POSITION_STR_SIZE ((ENGINE_MAX_FILES + 1) * ENGINE_MAX_RANKS + 2)
 
 /***************************************************************
+ * game.c: the game, as the front ends see it.
+ ***************************************************************/
+
+// The most moves of a game the engine keeps. A game from the start
+// has at most ENGINE_MAX_PLIES; one from a position set up with more
+// pawns could have more, and engine_play refuses those beyond.
+#define ENGINE_MAX_GAME (2 * ENGINE_MAX_PLIES)
+
+enum { ENGINE_PLAYING, ENGINE_WHITE_WINS, ENGINE_BLACK_WINS };
+
+// A new game, from the start, at the size of the board.
+void engine_new_game(void);
+
+// A new game from a position as text (engine_set_position), which
+// sets the size too. Returns 0, or -1 if the text is not a position,
+// when the game stays as it was.
+int engine_game_set_position(const char *s);
+
+// The current position of the game.
+const position_t *engine_position(void);
+
+// The moves of the game so far, and the i-th of them, from 0.
+int engine_game_plies(void);
+move_t engine_game_move(int i);
+
+// Makes the move m, one of engine_moves(engine_position()). Returns 0,
+// or -1 if the game is too long, when it is not made.
+int engine_play(move_t m);
+
+// Takes back the last move. Returns 0, or -1 if there is none.
+int engine_undo(void);
+
+// ENGINE_PLAYING, or who has won.
+int engine_result(void);
+
+/***************************************************************
  * perft.c
  ***************************************************************/
 

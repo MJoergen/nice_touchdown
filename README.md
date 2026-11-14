@@ -8,9 +8,9 @@ entered by the keyboard, in the same way as
 those of [touchdown_db](https://github.com/MJoergen/touchdown_db), which
 solves the 4x4 board.
 
-Status: the board and the move generator are built and tested, and a
-text front end that knows only `help` and `quit`; the search and the
-screen are not built yet. This
+Status: the board, the move generator, and the text front end are
+built and tested; the engine's search and the screen are not built
+yet, and `go` plays the first legal move. This
 README is the design. Each section says what is planned for the first
 version, and the last section what may come after.
 
@@ -110,12 +110,21 @@ clock, and no malloc, built for NICE and for the host. Around it:
 The text front end has commands such as:
 
     new 8x6        a new game on a board of 8 files and 6 ranks
+    position TEXT  set up a position, such as OOOO/..../..../XXXX x
     a1a2           make a move
+    moves          list the legal moves
+    undo           take back the last move
     go             the engine moves
     go depth 6     the engine searches to depth 6 and moves
     d              show the board
     perft 5        count the positions 5 moves ahead
+    divide 5       perft 5, for each legal move
     help           list the commands
+
+A position as text has its ranks from the last down to rank 1, divided
+by `/`, with `X` for White's pawn, `O` for Black's, and `.` for an
+empty square, as touchdown_db writes them, then the side to move, `x`
+or `o`.
 
 `perft` checks the move generator against a count made another way,
 and `go depth N` gives the same move every time, so both are good

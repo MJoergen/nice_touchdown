@@ -2,3 +2,16 @@
 ^Commands:
 ^  
 ^Unknown command
+^move
+^moves
+^White wins
+^Black wins
+^The 
+^Not a
+^No move
+^[0-9]x[0-9]
+^[0-9]*x[0-9]*, 
+^position 
+^perft 
+^divide 
+^[a-l][1-6][a-l][1-6]: 

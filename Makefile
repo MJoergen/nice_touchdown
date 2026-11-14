@@ -115,10 +115,12 @@ test: host-test nice-test
 
 host-test: build/host/td_text build/host/perftsuite
 	@tools/runtest.sh host_text text tests/text.input host build/host/td_text
+	@tools/runtest.sh host_perft perft tests/perft.input host build/host/td_text
 	@tools/runtest.sh host_perftsuite5 perftsuite5 /dev/null host build/host/perftsuite 5 1000
 
 nice-test: build/nice/td_text.bin build/test/mon_td_text.bin build/nice/perftsuite.bin | $(NICEEMU)
 	@tools/runtest.sh nice_text text tests/text.input nice build/nice/td_text.bin
+	@tools/runtest.sh nice_perft perft tests/perft.input nice build/nice/td_text.bin
 	@tools/runtest.sh mega65_text text tests/text.input nice build/test/mon_td_text.bin
 	@tools/runtest.sh nice_perftsuite2 perftsuite2 /dev/null nice build/nice/perftsuite.bin
 

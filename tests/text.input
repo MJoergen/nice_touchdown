@@ -1,4 +1,44 @@
 help
-
-foo bar
+d
+moves
+a1a2
+a7a6
+undo
+undo
+undo
+new 3x3
+new 13x6
+new 8
+new 4x4
+d
+b1b2
+c4c3
+b2c3
+moves
+go
+d
+position ...O/..O./..../.XX. x
+d
+moves
+c1c2
+d
+go
+go
+go
+go
+go
+go
+d
+b1b2
+go
+undo
+moves
+position X.../..../..../.... o
+position ..../..../..../X... o
+position ..../..../..../X..O x
+position OOOO/..../XXXX
+position OOOO/..../..../XXXX
+new 12x6
+d
+foo
 quit

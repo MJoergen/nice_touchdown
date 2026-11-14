@@ -1,6 +1,98 @@
 nice_touchdown VERSION. Type help for the commands.
 Commands:
-  help            list the commands
-  quit            end the program
+  new [WxH]        a new game, on a board of W files and H ranks (4x4 to 12x6)
+  position TEXT    set up a position, such as OOOO/..../..../XXXX x
+  d                show the board
+  moves            the legal moves
+  M, or move M     make a move, such as a1a2
+  undo             take back the last move
+  go               the engine moves
+  perft N          count the paths of the move tree of depth N
+  divide N         perft N, for each legal move
+  help             list the commands
+  quit             end the program
+  6  O O O O O O O O
+  5  . . . . . . . .
+  4  . . . . . . . .
+  3  . . . . . . . .
+  2  . . . . . . . .
+  1  X X X X X X X X
+     a b c d e f g h
+8x6, White (X) to move
+position OOOOOOOO/......../......../......../......../XXXXXXXX x
+moves a1a2 b1b2 c1c2 d1d2 e1e2 f1f2 g1g2 h1h2
+move a1a2
+Not a legal move: a7a6
+No move to take back
+No move to take back
+The size is 4x4 to 12x6
+The size is 4x4 to 12x6
+The size is WxH, such as 8x6
+  4  O O O O
+  3  . . . .
+  2  . . . .
+  1  X X X X
+     a b c d
+4x4, White (X) to move
+position OOOO/..../..../XXXX x
+move b1b2
+move c4c3
+move b2c3
+moves b4c3 d4c3 a4a3 b4b3 d4d3
+move b4c3
+  4  O . . O
+  3  . . O .
+  2  . . . .
+  1  X . X X
+     a b c d
+4x4, White (X) to move
+position O..O/..O./..../X.XX x
+  4  . . . O
+  3  . . O .
+  2  . . . .
+  1  . X X .
+     a b c d
+4x4, White (X) to move
+position ...O/..O./..../.XX. x
+moves b1b2 c1c2
+move c1c2
+  4  . . . O
+  3  . . O .
+  2  . . X .
+  1  . X . .
+     a b c d
+4x4, Black (O) to move
+position ...O/..O./..X./.X.. o
+move d4d3
+move c2d3
+move c3c2
+move d3d4
+White wins
+The game is over
+The game is over
+  4  . . . X
+  3  . . . .
+  2  . . O .
+  1  . X . .
+     a b c d
+4x4, Black (O) to move
+position ...X/..../..O./.X.. o
+The game is over
+The game is over
+moves d3d4 b1c2 b1b2
+White wins
+White wins
+Black wins
+Not a position: OOOO/..../XXXX
+Not a position: OOOO/..../..../XXXX
+  6  O O O O O O O O O O O O
+  5  . . . . . . . . . . . .
+  4  . . . . . . . . . . . .
+  3  . . . . . . . . . . . .
+  2  . . . . . . . . . . . .
+  1  X X X X X X X X X X X X
+     a b c d e f g h i j k l
+12x6, White (X) to move
+position OOOOOOOOOOOO/............/............/............/............/XXXXXXXXXXXX x
 Unknown command: foo. Type help for the commands.
 exit 0

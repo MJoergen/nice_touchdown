@@ -1,0 +1,13 @@
+new 4x4
+perft 6
+new 12x4
+perft 6
+new 6x5
+perft 6
+new 8x6
+perft 6
+new 12x6
+perft 5
+position ...O/..O./..X./.X.. x
+divide 3
+quit

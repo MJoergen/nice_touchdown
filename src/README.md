@@ -11,6 +11,8 @@
   - `notation.c`: moves as text (`b1b2`), and positions as text
     (`OOOO/..../..../XXXX x`, touchdown_db's letters).
   - `perft.c`: perft.
+  - `game.c`: the game as the front ends see it: its positions, its
+    moves, undo, and its result.
 - `platform/`: the clock, the default time of a move, the rate of the
   players' clocks, a seed, and reads of the console, a byte at a time,
   which wait or not: `nice.c` for NICE, `host.c` for a PC, behind
@@ -19,4 +21,5 @@
 - `ui/version.h`: the version the front ends show, from
   `build/gen/version.c`, which the Makefile writes (`VERSION`).
 - `ui/text.c`: the text front end, on the console. `help` lists its
-  commands.
+  commands. Until the engine has its search, `go` plays the first
+  legal move.
