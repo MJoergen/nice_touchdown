@@ -14,6 +14,8 @@ Makefile, the tests, the platform layer, and the front ends.
   are around it.
 - `tests/`: the inputs of the tests, `*.grep` (the lines of the output
   that are compared) and `*.expected`. `tools/runtest.sh` runs one test.
+  `perftsuite.c` checks the move generator against a slow one; after a
+  change to the engine, it must still say ok.
 - `tools/`: `runtest.sh`; `mockup.py` draws the mockups of the README.
 - `CONTRIBUTING.md`: building and the tests. Keep it, README.md, and
   `make help` in sync with the Makefile.
@@ -28,6 +30,7 @@ Makefile, the tests, the platform layer, and the front ends.
     make deps           # nice_cpu and niceemu into deps/
     make all            # build everything
     make test           # host and niceemu tests; run after every change
+    make perft-deep     # the perft suite deeper, on the host; in CI too
 
 ## Conventions
 

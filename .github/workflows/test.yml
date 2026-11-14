@@ -15,3 +15,5 @@ jobs:
         run: make deps
       - name: Test
         run: make test
+      - name: Perft suite to depth 6
+        run: make perft-deep

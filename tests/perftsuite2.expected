@@ -1,0 +1,56 @@
+perft 4x4: 4 16
+games 4x4: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 44 plies
+perft 5x4: 5 25
+games 5x4: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 38 plies
+perft 6x4: 6 36
+games 6x4: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 50 plies
+perft 7x4: 7 49
+games 7x4: White 0, Black 4; touchdown 4, no pawns 0, no move 0; 60 plies
+perft 8x4: 8 64
+games 8x4: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 42 plies
+perft 9x4: 9 81
+games 9x4: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 56 plies
+perft 10x4: 10 100
+games 10x4: White 1, Black 3; touchdown 4, no pawns 0, no move 0; 63 plies
+perft 11x4: 11 121
+games 11x4: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 72 plies
+perft 12x4: 12 144
+games 12x4: White 4, Black 0; touchdown 4, no pawns 0, no move 0; 80 plies
+perft 4x5: 4 16
+games 4x5: White 2, Black 2; touchdown 3, no pawns 0, no move 1; 56 plies
+perft 5x5: 5 25
+games 5x5: White 4, Black 0; touchdown 3, no pawns 0, no move 1; 76 plies
+perft 6x5: 6 36
+games 6x5: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 76 plies
+perft 7x5: 7 49
+games 7x5: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 94 plies
+perft 8x5: 8 64
+games 8x5: White 0, Black 4; touchdown 4, no pawns 0, no move 0; 88 plies
+perft 9x5: 9 81
+games 9x5: White 1, Black 3; touchdown 4, no pawns 0, no move 0; 81 plies
+perft 10x5: 10 100
+games 10x5: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 74 plies
+perft 11x5: 11 121
+games 11x5: White 0, Black 4; touchdown 4, no pawns 0, no move 0; 110 plies
+perft 12x5: 12 144
+games 12x5: White 1, Black 3; touchdown 4, no pawns 0, no move 0; 129 plies
+perft 4x6: 4 16
+games 4x6: White 3, Black 1; touchdown 3, no pawns 0, no move 1; 81 plies
+perft 5x6: 5 25
+games 5x6: White 2, Black 2; touchdown 3, no pawns 0, no move 1; 102 plies
+perft 6x6: 6 36
+games 6x6: White 3, Black 1; touchdown 4, no pawns 0, no move 0; 107 plies
+perft 7x6: 7 49
+games 7x6: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 108 plies
+perft 8x6: 8 64
+games 8x6: White 3, Black 1; touchdown 4, no pawns 0, no move 0; 139 plies
+perft 9x6: 9 81
+games 9x6: White 3, Black 1; touchdown 4, no pawns 0, no move 0; 139 plies
+perft 10x6: 10 100
+games 10x6: White 3, Black 1; touchdown 4, no pawns 0, no move 0; 133 plies
+perft 11x6: 11 121
+games 11x6: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 160 plies
+perft 12x6: 12 144
+games 12x6: White 2, Black 2; touchdown 4, no pawns 0, no move 0; 172 plies
+perft suite to depth 2: ok
+exit 0

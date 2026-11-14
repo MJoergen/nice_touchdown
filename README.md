@@ -8,8 +8,9 @@ entered by the keyboard, in the same way as
 those of [touchdown_db](https://github.com/MJoergen/touchdown_db), which
 solves the 4x4 board.
 
-Status: the build and the tests are in place, with a text front end
-that knows only `help` and `quit`; the engine is not built yet. This
+Status: the board and the move generator are built and tested, and a
+text front end that knows only `help` and `quit`; the search and the
+screen are not built yet. This
 README is the design. Each section says what is planned for the first
 version, and the last section what may come after.
 

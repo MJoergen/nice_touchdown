@@ -1,0 +1,56 @@
+perft 4x4: 4 16 66 280 1170
+games 4x4: White 551, Black 449; touchdown 835, no pawns 3, no move 162; 9731 plies
+perft 5x4: 5 25 128 674 3570
+games 5x4: White 523, Black 477; touchdown 907, no pawns 0, no move 93; 11193 plies
+perft 6x4: 6 36 220 1378 8746
+games 6x4: White 525, Black 475; touchdown 960, no pawns 0, no move 40; 12647 plies
+perft 7x4: 7 49 348 2524 18588
+games 7x4: White 550, Black 450; touchdown 987, no pawns 0, no move 13; 13512 plies
+perft 8x4: 8 64 518 4268 35706
+games 8x4: White 503, Black 497; touchdown 990, no pawns 0, no move 10; 14781 plies
+perft 9x4: 9 81 736 6790 63550
+games 9x4: White 527, Black 473; touchdown 999, no pawns 0, no move 1; 15239 plies
+perft 10x4: 10 100 1008 10294 106530
+games 10x4: White 511, Black 489; touchdown 996, no pawns 0, no move 4; 15835 plies
+perft 11x4: 11 121 1340 15008 170136
+games 11x4: White 547, Black 453; touchdown 999, no pawns 0, no move 1; 16563 plies
+perft 12x4: 12 144 1738 21184 261058
+games 12x4: White 516, Black 484; touchdown 998, no pawns 0, no move 2; 17338 plies
+perft 4x5: 4 16 64 258 1050
+games 4x5: White 560, Black 440; touchdown 781, no pawns 3, no move 216; 14204 plies
+perft 5x5: 5 25 125 628 3180
+games 5x5: White 537, Black 463; touchdown 898, no pawns 0, no move 102; 17011 plies
+perft 6x5: 6 36 216 1300 7870
+games 6x5: White 561, Black 439; touchdown 953, no pawns 0, no move 47; 19367 plies
+perft 7x5: 7 49 343 2406 16950
+games 7x5: White 532, Black 468; touchdown 971, no pawns 0, no move 29; 21594 plies
+perft 8x5: 8 64 512 4102 32970
+games 8x5: White 504, Black 496; touchdown 986, no pawns 0, no move 14; 23230 plies
+perft 9x5: 9 81 729 6568 59320
+games 9x5: White 522, Black 478; touchdown 991, no pawns 0, no move 9; 25122 plies
+perft 10x5: 10 100 1000 10008 100350
+games 10x5: White 540, Black 460; touchdown 999, no pawns 0, no move 1; 26416 plies
+perft 11x5: 11 121 1331 14650 161490
+games 11x5: White 522, Black 478; touchdown 1000, no pawns 0, no move 0; 28562 plies
+perft 12x5: 12 144 1728 20746 249370
+games 12x5: White 532, Black 468; touchdown 1000, no pawns 0, no move 0; 30234 plies
+perft 4x6: 4 16 64 256 1026
+games 4x6: White 508, Black 492; touchdown 794, no pawns 7, no move 199; 19174 plies
+perft 5x6: 5 25 125 625 3128
+games 5x6: White 530, Black 470; touchdown 873, no pawns 3, no move 124; 22970 plies
+perft 6x6: 6 36 216 1296 7780
+games 6x6: White 526, Black 474; touchdown 943, no pawns 0, no move 57; 26620 plies
+perft 7x6: 7 49 343 2401 16812
+games 7x6: White 544, Black 456; touchdown 966, no pawns 0, no move 34; 30008 plies
+perft 8x6: 8 64 512 4096 32774
+games 8x6: White 534, Black 466; touchdown 986, no pawns 0, no move 14; 32636 plies
+perft 9x6: 9 81 729 6561 59056
+games 9x6: White 498, Black 502; touchdown 987, no pawns 0, no move 13; 35182 plies
+perft 10x6: 10 100 1000 10000 100008
+games 10x6: White 524, Black 476; touchdown 990, no pawns 0, no move 10; 38330 plies
+perft 11x6: 11 121 1331 14641 161060
+games 11x6: White 533, Black 467; touchdown 996, no pawns 0, no move 4; 40583 plies
+perft 12x6: 12 144 1728 20736 248842
+games 12x6: White 490, Black 510; touchdown 1000, no pawns 0, no move 0; 43166 plies
+perft suite to depth 5: ok
+exit 0

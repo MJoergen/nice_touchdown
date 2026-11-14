@@ -23,7 +23,7 @@ RELEASE_URL = https://github.com/MJoergen/nice_cpu/releases/download/$(NICE_CPU_
 NICEEMU_TGZ = niceemu-$(NICE_CPU_TAG)-x86_64-linux.tar.gz
 
 # The engine: no I/O, no clock, no malloc, so the same files build for
-# NICE and for the host. Empty until Stage 1.
+# NICE and for the host.
 ENGINE = $(wildcard src/engine/*.c)
 # The headers, and the Makefile, whose flags every build takes, so that
 # a change of the flags rebuilds.
@@ -44,7 +44,7 @@ MONFLAGS = $(NICEFLAGS) --monitor
 # The host: with asserts.
 HOSTFLAGS = -O2 -W -Wall -Wextra
 
-.PHONY: FORCE help all test host-test nice-test deps clean distclean
+.PHONY: FORCE help all test host-test nice-test perft-deep deps clean distclean
 help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
 	@echo ""
@@ -52,6 +52,7 @@ help:
 	@echo "  make deps          fetch nice_cpu $(NICE_CPU_TAG) and niceemu $(NICE_CPU_TAG) into deps/"
 	@echo "  make all           build the text front end, for niceemu, for the MEGA65, and for the host"
 	@echo "  make test          the tests, on the host and in niceemu"
+	@echo "  make perft-deep    the perft suite to depth 6, and 10000 games a size, on the host (a minute)"
 	@echo "  make clean         remove build/"
 	@echo "  make distclean     remove build/ and deps/"
 	@echo ""
@@ -98,14 +99,31 @@ build/host/td_text: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/host.c $(VER
 	@mkdir -p $(@D)
 	$(CC) $(HOSTFLAGS) -o $@ $(ENGINE) $(VERSIONC) src/ui/text.c src/platform/host.c
 
+# The perft suite (tests/perftsuite.c): the engine's move generator
+# against a slow one, on every size of board. On NICE, which passes no
+# arguments, the depth and the games are set when it is built; the
+# checks are slow there, about 40 million steps a game.
+build/host/perftsuite: $(ENGINE) $(HEADERS) tests/perftsuite.c
+	@mkdir -p $(@D)
+	$(CC) $(HOSTFLAGS) -o $@ $(ENGINE) tests/perftsuite.c
+
+build/nice/perftsuite.bin: $(ENGINE) $(HEADERS) tests/perftsuite.c $(TOOLCHAIN)
+	@mkdir -p $(@D)
+	$(NICEBUILD) $(NICEFLAGS) -D PERFT_DEPTH=2 -D PERFT_GAMES=4 -o $@ $(ENGINE) tests/perftsuite.c
+
 test: host-test nice-test
 
-host-test: build/host/td_text
+host-test: build/host/td_text build/host/perftsuite
 	@tools/runtest.sh host_text text tests/text.input host build/host/td_text
+	@tools/runtest.sh host_perftsuite5 perftsuite5 /dev/null host build/host/perftsuite 5 1000
 
-nice-test: build/nice/td_text.bin build/test/mon_td_text.bin | $(NICEEMU)
+nice-test: build/nice/td_text.bin build/test/mon_td_text.bin build/nice/perftsuite.bin | $(NICEEMU)
 	@tools/runtest.sh nice_text text tests/text.input nice build/nice/td_text.bin
 	@tools/runtest.sh mega65_text text tests/text.input nice build/test/mon_td_text.bin
+	@tools/runtest.sh nice_perftsuite2 perftsuite2 /dev/null nice build/nice/perftsuite.bin
+
+perft-deep: build/host/perftsuite
+	@tools/runtest.sh host_perftsuite6 perftsuite6 /dev/null host build/host/perftsuite 6 10000
 
 deps: $(NICE_CPU) $(NICEEMU)
 
