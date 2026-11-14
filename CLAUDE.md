@@ -17,7 +17,8 @@ Makefile, the tests, the platform layer, and the front ends.
   `perftsuite.c` checks the move generator against a slow one, and
   `tablebase.c` the search against touchdown_db's 4x4 database; after a
   change to the engine, both must still pass.
-- `tools/`: `runtest.sh`; `mockup.py` draws the mockups of the README.
+- `tools/`: `runtest.sh`; `mockup.py` draws the mockups of the README;
+  `mkpawns.py` draws the pawns into `src/ui/pawns.h` (`make pawns`).
 - `CONTRIBUTING.md`: building and the tests. Keep it, README.md, and
   `make help` in sync with the Makefile.
 - `deps/` (fetched by `make deps`) and `build/` are not in git.

@@ -49,15 +49,16 @@ MONFLAGS = $(NICEFLAGS) --monitor
 # The host: with asserts.
 HOSTFLAGS = -O2 -W -Wall -Wextra
 
-.PHONY: FORCE help all test host-test nice-test perft-deep deps clean distclean
+.PHONY: FORCE help all test host-test nice-test perft-deep pawns deps clean distclean
 help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
 	@echo ""
 	@echo "  make help          show this text (the default)"
 	@echo "  make deps          fetch nice_cpu $(NICE_CPU_TAG), niceemu $(NICE_CPU_TAG), and touchdown_db into deps/"
-	@echo "  make all           build the text front end, for niceemu, for the MEGA65, and for the host"
+	@echo "  make all           build both front ends, for niceemu and for the MEGA65, and the text one for the host"
 	@echo "  make test          the tests, on the host and in niceemu"
 	@echo "  make perft-deep    the perft suite to depth 6, and 10000 games a size, on the host (a minute)"
+	@echo "  make pawns         draw the pawns again into src/ui/pawns.h (needs Pillow)"
 	@echo "  make clean         remove build/"
 	@echo "  make distclean     remove build/ and deps/"
 	@echo ""
@@ -79,7 +80,8 @@ $(VERSIONC): FORCE
 
 FORCE:
 
-all: build/nice/td_text.bin build/mega65/td_text.bin build/host/td_text
+all: build/nice/td_text.bin build/nice/td_screen.bin build/mega65/td_text.bin build/mega65/td_screen.bin \
+     build/host/td_text
 
 build/nice/td_text.bin: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/nice.c $(VERSIONC) $(TOOLCHAIN)
 	@mkdir -p $(@D)
@@ -88,6 +90,19 @@ build/nice/td_text.bin: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/nice.c $
 build/mega65/td_text.bin: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/nice.c $(VERSIONC) $(TOOLCHAIN)
 	@mkdir -p $(@D)
 	$(NICEBUILD) $(MONFLAGS) -o $@ $(ENGINE) $(VERSIONC) src/ui/text.c src/platform/nice.c
+
+build/nice/td_screen.bin: $(ENGINE) $(HEADERS) src/ui/screen.c src/ui/pawns.h src/platform/nice.c $(VERSIONC) $(TOOLCHAIN)
+	@mkdir -p $(@D)
+	$(NICEBUILD) $(NICEFLAGS) -o $@ $(ENGINE) $(VERSIONC) src/ui/screen.c src/platform/nice.c
+
+build/mega65/td_screen.bin: $(ENGINE) $(HEADERS) src/ui/screen.c src/ui/pawns.h src/platform/nice.c $(VERSIONC) $(TOOLCHAIN)
+	@mkdir -p $(@D)
+	$(NICEBUILD) $(MONFLAGS) -o $@ $(ENGINE) $(VERSIONC) src/ui/screen.c src/platform/nice.c
+
+# The glyphs of the pawns. pawns.h is in git, so that a build needs no
+# Pillow; make pawns draws it again after a change to mkpawns.py.
+pawns:
+	$(PYTHON) tools/mkpawns.py src/ui/pawns.h
 
 # nice_cpu's stand-in for a monitor at 0, which runs a program at 0x8000
 # as the monitor does, so that the MEGA65 builds run in niceemu too,
@@ -149,7 +164,14 @@ host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/g
 	@tools/runtest.sh host_tablebase tablebase build/gen/touchdown4x4.txt host build/host/tablebase 24
 	@tools/runtest.sh host_search search tests/search.input host build/host/td_text
 
-nice-test: build/nice/td_text.bin build/test/mon_td_text.bin build/nice/perftsuite.bin | $(NICEEMU)
+SCREEN_TESTS = screen screen_size screen_game screen_quit
+
+nice-test: build/nice/td_text.bin build/test/mon_td_text.bin build/nice/perftsuite.bin \
+           build/nice/td_screen.bin build/test/mon_td_screen.bin | $(NICEEMU)
+	@for t in $(SCREEN_TESTS); do \
+	  tools/runtest.sh nice_$$t $$t tests/$$t.keys screen build/nice/td_screen.bin || exit 1; \
+	  tools/runtest.sh mega65_$$t $$t tests/$$t.keys screen build/test/mon_td_screen.bin || exit 1; \
+	done
 	@tools/runtest.sh nice_text text tests/text.input nice build/nice/td_text.bin
 	@tools/runtest.sh nice_perft perft tests/perft.input nice build/nice/td_text.bin
 	@tools/runtest.sh nice_search search tests/search.input nice build/nice/td_text.bin

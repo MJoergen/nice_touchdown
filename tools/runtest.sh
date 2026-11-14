@@ -7,10 +7,12 @@
 # --color, so that the screen at the halt, with its colors, is in the
 # output too.
 #
-# The lines that match a pattern of tests/CHECK.grep (with the digits
-# at the end of CHECK left out: perft3 uses perft.grep), after the
+# The lines that match a pattern of tests/CHECK.grep (with what
+# follows the first digit or _ of CHECK left out: perftsuite5 uses
+# perftsuite.grep, and screen_game screen.grep), after the
 # prompts "> " are taken off, and then "exit N" with main's result,
-# with the version that follows "nice_touchdown " ($VERSION, which the
+# with the figures of the players' clocks on the screen as m:ss, and
+# the version that follows "nice_touchdown " ($VERSION, which the
 # Makefile exports) as VERSION, must be tests/CHECK.expected. Prints
 # PASS or FAIL, and exits with 1 on a failure.
 set -u
@@ -37,8 +39,9 @@ else
 fi
 
 expected=tests/$check.expected
+clocks='/m\(White\|Black\)  /s/[0-9][0-9:]*:[0-9][0-9]/m:ss/'
 version="s/nice_touchdown ${VERSION:?the Makefile exports VERSION}/nice_touchdown VERSION/g"
-{ sed 's/^\(> \)*//' $raw | grep -f tests/${check%%[0-9]*}.grep | sed "$version"; echo "exit $status"; } > $out
+{ sed 's/^\(> \)*//' $raw | grep -f tests/${check%%[_0-9]*}.grep | sed "$clocks; $version"; echo "exit $status"; } > $out
 if cmp -s $out $expected; then
     echo "PASS $name"
 else

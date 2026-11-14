@@ -12,6 +12,7 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make deps        # nice_cpu V2.0, niceemu V2.0, and touchdown_db into deps/
     make all         # build/nice/ for niceemu, build/mega65/ for the MEGA65, build/host/td_text for the host
     make test        # the tests, on the host and in niceemu
+    make pawns       # draw the pawns again into src/ui/pawns.h, after a change to tools/mkpawns.py (needs Pillow)
     make perft-deep  # the perft suite to depth 6, and 10000 games a size, on the host (about 2 minutes)
 
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
@@ -37,6 +38,12 @@ which the slow generator checks as they are made.
 pinned commit, which the build makes and runs to have the value of
 every 4x4 position with at most 4 pawns a side
 (`build/gen/touchdown4x4.txt`, in under a second).
+
+The tests of the windowed front end (`tests/screen*.keys`) type keys
+into it in niceemu, and compare the moves it logs and the screen at
+the end, with its colors, for the build for niceemu and for the MEGA65.
+`tools/screenshot.py` of nice_chess draws such a screen as a PNG, from
+niceemu's `-d 0xFFFF0000:2000 -d 0xFFFFFF86:1 -d 0xFFFE0000:16384`.
 
 The tests that search set `seed 1`, so that the engine's choice among
 Even moves is the same on the host as in niceemu.

@@ -8,8 +8,9 @@ entered by the keyboard, in the same way as
 those of [touchdown_db](https://github.com/MJoergen/touchdown_db), which
 solves the 4x4 board.
 
-Status: the engine (the board, the move generator, and the search) and
-the text front end are built and tested; the screen is not built yet. This
+Status: the engine (the board, the move generator, and the search),
+the text front end, and the windowed front end are built and tested in
+niceemu; they are not yet tried on the MEGA65 itself. This
 README is the design. Each section says what is planned for the first
 version, and the last section what may come after.
 
@@ -92,7 +93,9 @@ The keys follow nice_chess:
 - N: a new game.
 - \+ and −: the depth of the engine's search.
 - W: the next width, 4 to 12 files, and a new game.
-- H: the next height, 4 to 6 ranks, and a new game.
+- H: the next height, 4 to 6 ranks, and a new game. On a board of 8
+  files or more, h is the file h of a typed move, so the height is
+  Shift+H there.
 - ESC while the engine thinks: make it move now.
 - Q: clear the screen and return to the monitor.
 

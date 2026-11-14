@@ -24,6 +24,10 @@
   the cycle counter to the microsecond counter.
 - `ui/version.h`: the version the front ends show, from
   `build/gen/version.c`, which the Makefile writes (`VERSION`).
+- `ui/screen.c`: the windowed front end, on the 80x25 screen, for NICE
+  only. Its keys are listed at the top of the file and on the screen.
+  `ui/pawns.h` has the glyphs of the pawns, which `tools/mkpawns.py`
+  draws (`make pawns`).
 - `ui/text.c`: the text front end, on the console. `help` lists its
   commands. `go` prints the search as `info depth D score S nodes N
   pv ...` and plays its move.
