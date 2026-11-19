@@ -244,17 +244,18 @@ is the default.
 
 `tools/solve.c` solves the start of a board on the host, by a
 depth-first search with a table of the positions it has solved
-(CONTRIBUTING.md has how). With best play, the first player, White:
+and a rule of races of pawns that nothing can stop (CONTRIBUTING.md
+has how). With best play, the first player, White:
 
 | Ranks \ Files  | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12 |
 |---------------|-----|-----|-----|-----|-----|-----|-----|-----|----|
-| 4             | win | loss | loss | win | loss | win | win | loss | ?  |
-| 5             | loss | win | loss | win | win | win | ?   |     |    |
+| 4             | win | loss | loss | win | loss | win | win | loss | win |
+| 5             | loss | win | loss | win | win | win | win |     |    |
 | 6             | win | win | loss | loss | win | ?   |     |     |    |
 
-The default board, 8x6, is a win for White, found in 9 minutes; the
-sizes marked ? are not solved in 10 minutes, and those left empty
-were not tried.
+The default board, 8x6, is a win for White, found in under 2 minutes
+with 16 threads; 10x5, the largest solved, took 32 minutes. The sizes
+left empty are not solved yet.
 
 ## After the first version
 
@@ -276,7 +277,8 @@ measured by matches against the version before:
   in the table.
 - **An opening book**: positions near the start, searched deeply on
   the host, with the best moves stored in the program.
-- **Solving boards**: the sizes not solved yet (Solved boards), with a larger table, a proof-number search, or a tablebase.
+- **Solving boards**: the sizes not solved yet (Solved boards), with a
+  larger table, kept on disk, or a tablebase of the endings.
 
 ## Building
 

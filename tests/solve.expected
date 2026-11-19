@@ -1,11 +1,11 @@
 solve 4x4: 755591 positions, 220104 wins, 535487 losses, 0 differences
-4x4 OOOO/..../..../XXXX x: WIN, 330 nodes, 310 positions kept, 0 replaced
-5x4 OOOOO/...../...../XXXXX x: LOSS, 3347 nodes, 3150 positions kept, 0 replaced
-6x4 OOOOOO/....../....../XXXXXX x: LOSS, 14902 nodes, 13968 positions kept, 0 replaced
-7x4 OOOOOOO/......./......./XXXXXXX x: WIN, 53739 nodes, 50454 positions kept, 0 replaced
-4x5 OOOO/..../..../..../XXXX x: LOSS, 1664 nodes, 1573 positions kept, 0 replaced
-5x5 OOOOO/...../...../...../XXXXX x: WIN, 10904 nodes, 10024 positions kept, 0 replaced
-6x5 OOOOOO/....../....../....../XXXXXX x: LOSS, 449124 nodes, 401388 positions kept, 50 replaced
-4x6 OOOO/..../..../..../..../XXXX x: WIN, 3358 nodes, 3062 positions kept, 0 replaced
-5x6 OOOOO/...../...../...../...../XXXXX x: WIN, 151144 nodes, 133057 positions kept, 0 replaced
+4x4 OOOO/..../..../XXXX x: WIN, 290 nodes, 272 positions kept, 0 replaced
+5x4 OOOOO/...../...../XXXXX x: LOSS, 2722 nodes, 2576 positions kept, 0 replaced
+6x4 OOOOOO/....../....../XXXXXX x: LOSS, 12034 nodes, 11346 positions kept, 0 replaced
+7x4 OOOOOOO/......./......./XXXXXXX x: WIN, 40515 nodes, 38191 positions kept, 0 replaced
+4x5 OOOO/..../..../..../XXXX x: LOSS, 1202 nodes, 1139 positions kept, 0 replaced
+5x5 OOOOO/...../...../...../XXXXX x: WIN, 7138 nodes, 6532 positions kept, 0 replaced
+6x5 OOOOOO/....../....../....../XXXXXX x: LOSS, 286626 nodes, 260194 positions kept, 5 replaced
+4x6 OOOO/..../..../..../..../XXXX x: WIN, 1800 nodes, 1614 positions kept, 0 replaced
+5x6 OOOOO/...../...../...../...../XXXXX x: WIN, 81980 nodes, 73455 positions kept, 0 replaced
 exit 0

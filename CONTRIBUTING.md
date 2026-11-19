@@ -139,41 +139,59 @@ move sees it, and as the smaller of it and its mirror, so that a
 position, the same with the other side to move, and their mirrors
 share an entry.
 
+Before it searches the moves of a position, a rule of races may know
+its value: a pawn is free when no enemy pawn can ever come to a square
+from which it blocks or takes it, and no pawn of its own is ahead of
+it; the side to move wins if it has a free pawn no slower than every
+pawn of the opponent, and loses if the opponent has a free pawn faster
+than every pawn of its own. It saves 30 to 40% of the nodes.
+
 `--check FILE` solves every position of touchdown_db's 4x4 database
 and compares them; `--moves` gives the value of each move at the
 root; `--order plain` tries the moves in the order of the move
 generator rather than the evaluation's, which on these boards takes
-about as many nodes; `--hash MB` is the size of the table (1024).
+about as many nodes; `--no-races` searches without the rule of races;
+`--hash MB` is the size of the table (1024); `--threads N` searches
+with N threads, which share the table, each in an order of the moves
+of its own, so that their counts are not the same every time.
 
-The figures, from the start, on one core:
+The figures, from the start, on one core up to 7x6, and with
+`--threads 16` above it:
 
-| Size | First player | Nodes   | Time  |
-|------|--------------|---------|-------|
-| 4x4  | WIN          | 276     |       |
-| 5x4  | LOSS         | 2497    |       |
-| 6x4  | LOSS         | 13177   |       |
-| 7x4  | WIN          | 72823   |       |
-| 8x4  | LOSS         | 643413  | 0.5 s |
-| 9x4  | WIN          | 2.8 M   | 1.8 s |
-| 10x4 | WIN          | 37 M    | 22 s  |
-| 11x4 | LOSS         | 240 M   | 153 s |
-| 4x5  | LOSS         | 1730    |       |
-| 5x5  | WIN          | 13982   |       |
-| 6x5  | LOSS         | 223550  | 0.2 s |
-| 7x5  | WIN          | 3.5 M   | 2.3 s |
-| 8x5  | WIN          | 38 M    | 25 s  |
-| 9x5  | WIN          | 381 M   | 255 s |
-| 4x6  | WIN          | 3826    |       |
-| 5x6  | WIN          | 145404  | 0.1 s |
-| 6x6  | LOSS         | 1.6 M   | 1.0 s |
-| 7x6  | LOSS         | 41 M    | 28 s  |
-| 8x6  | WIN          | 776 M   | 519 s |
+| Size | First player | Nodes   | Time    | Table  |
+|------|--------------|---------|---------|--------|
+| 4x4  | WIN          | 223     |         |        |
+| 5x4  | LOSS         | 1960    |         |        |
+| 6x4  | LOSS         | 9843    |         |        |
+| 7x4  | WIN          | 52349   |         |        |
+| 8x4  | LOSS         | 485908  | 0.5 s   |        |
+| 9x4  | WIN          | 2.1 M   | 2.2 s   |        |
+| 10x4 | WIN          | 27 M    | 29 s    | 4 GB   |
+| 4x5  | LOSS         | 1248    |         |        |
+| 5x5  | WIN          | 9274    |         |        |
+| 6x5  | LOSS         | 142142  | 0.2 s   |        |
+| 7x5  | WIN          | 2.2 M   | 2.5 s   |        |
+| 8x5  | WIN          | 23 M    | 29 s    | 4 GB   |
+| 4x6  | WIN          | 2621    |         |        |
+| 5x6  | WIN          | 95595   | 0.1 s   |        |
+| 6x6  | LOSS         | 915215  | 1.1 s   |        |
+| 7x6  | LOSS         | 23 M    | 29 s    | 4 GB   |
+| 11x4 | LOSS         | 304 M   | 20 s    | 40 GB  |
+| 9x5  | WIN          | 708 M   | 53 s    | 40 GB  |
+| 8x6  | WIN          | 1.3 G   | 102 s   | 40 GB  |
+| 12x4 | WIN          | 1.4 G   | 97 s    | 40 GB  |
+| 10x5 | WIN          | 18 G    | 32 min  | 16 GB  |
 
-Those of 7x6 and above are with `--hash 6144`, six at a time. 12x4 and
-10x5 are not solved in 10 minutes; the larger boards, with more
-positions than the table holds, lose more of them to the
-replacement. The next steps would be a larger table on disk, or a
-proof-number search, which looks at fewer positions.
+12x4 was solved too on one core without the rule of races, in 18
+minutes with a table of 32 GB, also a WIN. 10x5 had a table that was
+full: the larger the board, the more of its positions the table loses
+to the replacement and searches again.
+
+A proof-number search (df-pn) was tried too, and dropped: it agreed
+with the others, but took 3 to 10 times the nodes of the depth-first
+search, with about as many positions in the table, as on these boards
+most of the work is to show that every move of a lost position loses,
+where the order of the search does not help.
 
 ## The evaluation and its trainer
 

@@ -187,7 +187,7 @@ SOLVE_ARGS ?= 4x4 5x4 6x4 7x4 8x4 9x4 10x4 4x5 5x5 6x5 7x5 8x5 4x6 5x6 6x6
 
 build/host/solve: $(ENGINE) $(HEADERS) tools/solve.c
 	@mkdir -p $(@D)
-	$(CC) $(FASTFLAGS) -o $@ $(ENGINE) tools/solve.c
+	$(CC) $(FASTFLAGS) -pthread -o $@ $(ENGINE) tools/solve.c
 
 solve: build/host/solve
 	build/host/solve $(SOLVE_ARGS)
