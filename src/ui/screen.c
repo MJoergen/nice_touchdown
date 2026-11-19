@@ -21,13 +21,13 @@
  *   R               rotate the board
  *   N               a new game
  *   + -             the depth of the engine's search, 1 to 32
- *   W               the next width, 4 to 12 files, and a new game
- *   H               the next height, 4 to 6 ranks, and a new game
+ *   X               the next width, 4 to 12 files, and a new game
+ *   Y               the next height, 4 to 6 ranks, and a new game
  *   Q               quit, and clear the screen
- * A lowercase letter that can start or go on with the move being typed
- * is a part of it: on a board of 8 files or more, h is the file h, and
- * Shift+H the next height. The other letters of commands act only when
- * no move is being typed.
+ * Letters are the same in either case, so that CAPS LOCK does not
+ * matter. A letter that can start or go on with the move being typed
+ * is a part of it; the letters of commands are not files, a to l, and
+ * act only when no move is being typed.
  *
  * The cursor is two red brackets on a square 5 columns wide, and the
  * square's color, green, on one 3 columns wide. The pawn picked up is
@@ -485,7 +485,7 @@ static void draw_all(void)
     draw_input();
     draw_line(ROW_HELP,     COLOR(PANEL, DIM), "Arrows+Enter or a1a2: move  Q quit");
     draw_line(ROW_HELP + 1, COLOR(PANEL, DIM), "U undo  S switch  R rotate  N new");
-    draw_line(ROW_HELP + 2, COLOR(PANEL, DIM), "+/- depth  W width  H height");
+    draw_line(ROW_HELP + 2, COLOR(PANEL, DIM), "+/- depth  X width  Y height");
 }
 
 /***************************************************************
@@ -779,6 +779,8 @@ static int fits_typed(int c)
 static int handle_key(int k)
 {
     message = "";
+    if (k >= 'A' && k <= 'Z')
+        k += 'a' - 'A';
     if (k >= K_UP && k <= K_LEFT)
         move_cursor(k);
     else if (k == K_ESC)
@@ -807,7 +809,7 @@ static int handle_key(int k)
     }
     else if (n_typed)
         message = "Type a move such as a1a2.";
-    else switch (k >= 'A' && k <= 'Z' ? k + 'a' - 'A' : k)
+    else switch (k)
     {
         case 'q':
             // Leave a blank screen, for the monitor on the board, in
@@ -827,12 +829,12 @@ static int handle_key(int k)
             break;
         case '+': if (depth < ENGINE_MAX_DEPTH) ++depth; break;
         case '-': if (depth > 1) --depth; break;
-        case 'w':
+        case 'x':
             engine_set_size(engine_files() == ENGINE_MAX_FILES ? ENGINE_MIN_FILES : engine_files() + 1,
                             engine_ranks());
             new_game();
             break;
-        case 'h':
+        case 'y':
             engine_set_size(engine_files(),
                             engine_ranks() == ENGINE_MAX_RANKS ? ENGINE_MIN_RANKS : engine_ranks() + 1);
             new_game();

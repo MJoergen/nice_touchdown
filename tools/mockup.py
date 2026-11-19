@@ -224,7 +224,7 @@ def main() -> None:
     scr.text(col, 20, BRIGHT, "c4c5" if cols == 8 else "")
     scr.text(PX, 22, DIM, "Arrows+Enter or a1a2: move  Q quit")
     scr.text(PX, 23, DIM, "U undo  S switch  R rotate  N new")
-    scr.text(PX, 24, DIM, "+/- depth  W width  H height")
+    scr.text(PX, 24, DIM, "+/- depth  X width  Y height")
     scr.render(font, args.png)
 
 

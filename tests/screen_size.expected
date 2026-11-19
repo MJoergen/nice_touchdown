@@ -27,5 +27,5 @@ position OOOOO.OOOOOO/.....O....../.....X....../XXXXX.XXXXXX x
 |[0m
 |[48;2;17;34;51;38;2;136;153;170m                                          Arrows+Enter or a1a2: move  Q quit[0m
 |[48;2;17;34;51;38;2;136;153;170m                                          U undo  S switch  R rotate  N new[0m
-|[48;2;17;34;51;38;2;136;153;170m                                          +/- depth  W width  H height[0m
+|[48;2;17;34;51;38;2;136;153;170m                                          +/- depth  X width  Y height[0m
 exit 0

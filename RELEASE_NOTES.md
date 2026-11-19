@@ -30,8 +30,8 @@ on a console, in niceemu, and on a PC.
 
 - Boards of 4 to 12 files and 4 to 6 ranks, 8x6 at first.
 - The windowed front end: moves by the cursor or typed, undo, switch
-  sides, rotate the board, a new game, the depth, the width, and the
-  height (Shift+H on boards of 8 files or more), and Esc to make the
+  sides, rotate the board, a new game, the depth, the width (X), and
+  the height (Y), letters in either case, and Esc to make the
   engine move now.
 - The text front end: `new WxH`, `position`, `d`, `moves`, moves such
   as `a1a2`, `undo`, `go [depth N]`, `depth`, `seed`, `perft`, and

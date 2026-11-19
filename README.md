@@ -93,10 +93,11 @@ The keys follow nice_chess:
 - R: rotate the board.
 - N: a new game.
 - \+ and −: the depth of the engine's search.
-- W: the next width, 4 to 12 files, and a new game.
-- H: the next height, 4 to 6 ranks, and a new game. On a board of 8
-  files or more, h is the file h of a typed move, so the height is
-  Shift+H there.
+- X: the next width, 4 to 12 files, and a new game.
+- Y: the next height, 4 to 6 ranks, and a new game.
+
+Letters are the same in either case, so CAPS LOCK does not matter, and
+the letters of the commands are none of the files, a to l.
 - ESC while the engine thinks: make it move now.
 - Q: clear the screen and return to the monitor.
 
