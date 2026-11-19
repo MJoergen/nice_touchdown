@@ -1,0 +1,17 @@
+evaldb 4x4: the sign of engine_eval against touchdown_db, without a search
+  all                   275836: right  87.88% (majority  79.80%), move keeps the win  97.85%
+  not won at once       100822: right  71.86% (majority  55.28%), move keeps the win  89.50%
+  from the start          8077: right  92.86% (majority  72.47%), move keeps the win  98.46%
+    not won at once       3722: right  85.09% (majority  59.75%), move keeps the win  93.99%
+  not won at once, by the evaluation's probability of a win:
+    0- 10%    3034: probability   7.5%, WIN   0.3%
+   10- 20%   13755: probability  15.5%, WIN   3.6%
+   20- 30%   15591: probability  24.9%, WIN  16.3%
+   30- 40%   14701: probability  35.0%, WIN  40.8%
+   40- 50%   14931: probability  45.0%, WIN  55.3%
+   50- 60%   15451: probability  54.8%, WIN  64.8%
+   60- 70%   12338: probability  64.7%, WIN  72.5%
+   70- 80%    8386: probability  74.4%, WIN  78.7%
+   80- 90%    2607: probability  83.2%, WIN  84.5%
+   90-100%      28: probability  91.2%, WIN 100.0%
+exit 0

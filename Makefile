@@ -201,7 +201,7 @@ deps/touchdown_db/%:
 
 build/host/tablebase: $(ENGINE) $(HEADERS) tests/tablebase.c
 	@mkdir -p $(@D)
-	$(CC) $(HOSTFLAGS) -o $@ $(ENGINE) tests/tablebase.c
+	$(CC) $(HOSTFLAGS) -o $@ $(ENGINE) tests/tablebase.c -lm
 
 test: host-test nice-test
 
@@ -212,6 +212,7 @@ host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/g
 	@tools/runtest.sh host_perft perft tests/perft.input host build/host/td_text
 	@tools/runtest.sh host_perftsuite5 perftsuite5 /dev/null host build/host/perftsuite 5 1000
 	@tools/runtest.sh host_tablebase tablebase build/gen/touchdown4x4.txt host build/host/tablebase 24
+	@tools/runtest.sh host_evaldb evaldb build/gen/touchdown4x4.txt host build/host/tablebase eval
 	@tools/runtest.sh host_search search tests/search.input host build/host/td_text
 
 SCREEN_TESTS = screen screen_size screen_game screen_quit

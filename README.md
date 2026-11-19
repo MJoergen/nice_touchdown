@@ -221,6 +221,11 @@ N - 1. For every size, the move generator is checked against a plain,
 slow one, at every node of the move tree from the start and of games
 at random to their end.
 
+The evaluation alone, without a search, is measured against
+touchdown_db too (the test `evaldb`): its sign is the value of 85% of
+the 4x4 positions that can come from the start and are not won at
+once, and of 72% of all those not won at once.
+
 The evaluation is checked against the trainer's own: in every
 position of 2700 games at random on every size, it is the sum of the
 weights of the trainer's windows.

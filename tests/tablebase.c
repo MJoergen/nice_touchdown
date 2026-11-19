@@ -21,9 +21,23 @@
  * It prints the counts and the first differences, and returns 0 if
  * there are none.
  *
+ *   touchdown_db -d FILE | tablebase eval
+ *
+ * checks the evaluation alone, engine_eval without a search, in each
+ * position that has a move. It prints how often its sign is
+ * touchdown_db's value, and how often the move it would play, the one
+ * whose position is worst for the opponent (or a move to the last
+ * rank), keeps a WIN: of all of them, of those not won at once by a
+ * move to the last rank, of those that can come from the start, and
+ * of those of them not won at once. Then, of those not won at once,
+ * how often a WIN is for each tenth of the evaluation's probability of
+ * a win. It is a measure, not a check: it returns 0, and its expected
+ * output changes with the weights.
+ *
  * Copyright (c) 2026 Michael Jørgensen. MIT license (see LICENSE).
  ***************************************************************/
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,9 +97,147 @@ static void error(const char *text, const char *what)
     errors++;
 }
 
+/***************************************************************
+ * tablebase eval: the evaluation alone
+ ***************************************************************/
+
+// Whether each entry of the table can come from the start.
+static unsigned char reached[MAX_POSITIONS];
+
+static void reach(const position_t *p)
+{
+    entry_t e = {key(p), 0};
+    entry_t *f = bsearch(&e, table, (size_t) n_table, sizeof e, compare);
+    if (!f || reached[f - table])
+        return;
+    reached[f - table] = 1;
+    move_t list[ENGINE_MAX_MOVES];
+    int n = engine_moves(p, list);
+    for (int k = 0; k < n; k++)
+    {
+        position_t q;
+        engine_make(p, list[k], &q);
+        reach(&q);
+    }
+}
+
+// The move of the evaluation, as tools/train.c plays it: one that
+// ends the game, or else the one whose position is worst for the
+// opponent, the first of them.
+static move_t eval_move(const position_t *p, const move_t *list, int n)
+{
+    move_t best = list[0], l2[ENGINE_MAX_MOVES];
+    int best_v = ENGINE_EVAL_MAX + 1;
+    for (int i = 0; i < n; i++)
+    {
+        position_t q;
+        engine_make(p, list[i], &q);
+        if (engine_moves(&q, l2) == 0)
+            return list[i];
+        int v = engine_eval(&q);
+        if (v < best_v)
+            best_v = v, best = list[i];
+    }
+    return best;
+}
+
+typedef struct
+{
+    long n, right, losses, wins, kept;
+} count_t;
+
+static void count(count_t *c, int win, int v, int kept)
+{
+    c->n++;
+    c->right += (v > 0) == win;
+    c->losses += !win;
+    c->wins += win;
+    c->kept += kept;
+}
+
+static void print_count(const char *what, const count_t *c)
+{
+    long major = c->losses > c->wins ? c->losses : c->wins;
+    printf("  %-20s %7ld: right %6.2f%% (majority %6.2f%%), move keeps the win %6.2f%%\n", what, c->n,
+           100.0 * c->right / c->n, 100.0 * major / c->n, 100.0 * c->kept / c->wins);
+}
+
+static int eval_db(void)
+{
+    position_t p;
+    move_t list[ENGINE_MAX_MOVES];
+    count_t all = {0}, all_hard = {0}, start = {0}, start_hard = {0};
+    long bin_n[10] = {0}, bin_wins[10] = {0};
+    double bin_p[10] = {0};
+
+    engine_set_size(4, 4);
+    engine_start(&p);
+    reach(&p);
+    for (int i = 0; i < n_table; i++)
+    {
+        // The position again, from its key: the side to move, X, on
+        // ranks 1 and up.
+        char t[24];
+        for (int r = 0; r < 4; r++)
+        {
+            for (int f = 0; f < 4; f++)
+            {
+                int sq = (3 - r) * 4 + f;
+                t[r * 5 + f] = table[i].key >> (sq + 16) & 1 ? 'X' : table[i].key >> sq & 1 ? 'O' : '.';
+            }
+            t[r * 5 + 4] = r < 3 ? '/' : ' ';
+        }
+        t[20] = 'x';
+        t[21] = '\0';
+        engine_set_position(&p, t);
+        int n = engine_moves(&p, list);
+        if (n == 0)
+            continue;
+        int win = table[i].win, v = engine_eval(&p), kept = 0;
+        if (win)
+        {
+            position_t q;
+            engine_make(&p, eval_move(&p, list, n), &q);
+            kept = engine_moves(&q, list) == 0 || lookup(&q) == 0;
+            n = engine_moves(&p, list);
+        }
+        int hard = SQUARE_RANK(MOVE_TO(list[0])) < 3; // The moves to the last rank come first
+        count(&all, win, v, kept);
+        if (hard)
+            count(&all_hard, win, v, kept);
+        if (reached[i])
+        {
+            count(&start, win, v, kept);
+            if (hard)
+                count(&start_hard, win, v, kept);
+        }
+        if (hard)
+        {
+            double prob = 1 / (1 + exp(-v / 100.0));
+            int b = prob >= 1 ? 9 : (int) (prob * 10);
+            bin_n[b]++;
+            bin_wins[b] += win;
+            bin_p[b] += prob;
+        }
+    }
+
+    printf("evaldb 4x4: the sign of engine_eval against touchdown_db, without a search\n");
+    print_count("all", &all);
+    print_count("not won at once", &all_hard);
+    print_count("from the start", &start);
+    print_count("  not won at once", &start_hard);
+    printf("  not won at once, by the evaluation's probability of a win:\n");
+    for (int b = 0; b < 10; b++)
+        if (bin_n[b])
+            printf("  %3d-%3d%% %7ld: probability %5.1f%%, WIN %5.1f%%\n", b * 10, b * 10 + 10, bin_n[b],
+                   100.0 * bin_p[b] / bin_n[b], 100.0 * bin_wins[b] / bin_n[b]);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
-    int depth = argc > 1 ? atoi(argv[1]) : 24;
+    int eval = argc > 1 && !strcmp(argv[1], "eval");
+    int depth = argc > 1 && !eval ? atoi(argv[1]) : 24;
     static char line[256];
     static char texts[MAX_POSITIONS][24];
 
@@ -119,6 +271,8 @@ int main(int argc, char **argv)
     for (int i = 0; i < n_table; i++)
         win_of[i] = table[i].win;
     qsort(table, (size_t) n_table, sizeof table[0], compare);
+    if (eval)
+        return errors ? 1 : eval_db();
 
     int wins = 0, losses = 0;
     uint64_t nodes = 0;

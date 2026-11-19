@@ -45,10 +45,84 @@ the position after each, and the text of moves and positions. Its
 `.expected` files hold the counts of the tree and how the games ended,
 which the slow generator checks as they are made.
 
-`tests/tablebase.c` checks the search against touchdown_db, at a
-pinned commit, which the build makes and runs to have the value of
-every 4x4 position with at most 4 pawns a side
-(`build/gen/touchdown4x4.txt`, in under a second).
+`tests/tablebase.c` checks the search against touchdown_db's database
+of the 4x4 board, and measures the evaluation alone against it
+(below).
+
+## The 4x4 database
+
+[touchdown_db](https://github.com/MJoergen/touchdown_db), at the
+commit of `TOUCHDOWN_DB_COMMIT` in the Makefile, has the value, WIN or
+LOSS for the side to move, of every 4x4 position with at most 4 pawns
+a side. The build fetches its sources into `deps/touchdown_db/`, makes
+it (`build/host/touchdown_db`), and runs it to write
+`build/gen/touchdown4x4.txt`, in under a second.
+
+A position is a 24-bit index, seen from the side to move, whose pawns
+move towards row 0: bits 15-0 are the squares that have a pawn, row by
+row, and bits 23-16 have a bit for each of those pawns in the same
+order, 1 for the side to move (`index.h`). Of the 2^24 indices,
+`indexIsValid` leaves out those with more than 4 pawns a side, or with
+bits for more pawns than there are.
+
+It solves the board by sweeps over all the indices, not by moves taken
+back. A position is known when:
+
+- the side to move has already won (a pawn on row 0, or the opponent
+  has none): it cannot come in a game, and is marked WIN, as are the
+  indices left out;
+- the side to move has lost (an opponent's pawn on its first row, or
+  no pawns): LOSS;
+- every position after a move is known: WIN if one of them is a LOSS,
+  else LOSS (also when there is no move).
+
+The sweeps go on until one finds nothing new: 8 of them. It keeps two
+bitmaps of 2^24 bits: the values (`build/gen/touchdown.tb`) and which
+are known (`build/gen/touchdown.known`, which the build moves there
+from `/tmp`).
+
+`touchdown_db -d` writes a line for each valid index but those where
+the side to move has already won: the index, the board (its ranks from
+the side to move's last down to its first, the side to move `X`), and
+the value. Games that are over, lost by the side to move, are among
+them. `touchdown4x4.txt` has 755591 lines: 220104 WIN and 535487 LOSS.
+The start is a WIN: on 4x4 the player who moves first wins.
+
+It is used three times:
+
+- `tests/tablebase.c` (`make test`) searches every position to depth
+  24, which reaches the end of every game, and checks that the value
+  is the database's and proved, that the move played in a WIN leads to
+  a LOSS of the database, and that a Win in N is followed by a Loss in
+  N - 1. Its expected output: `755591 positions, 220104 wins, 535487
+  losses, 0 differences`.
+- `tablebase eval` (the test `evaldb`) measures the engine's
+  evaluation alone, `engine_eval` without a search, in the 275836
+  positions that have a move: how often its sign is the database's
+  value, and how often the move it would play (one that ends the game,
+  or else the one whose position is worst for the opponent) keeps a
+  WIN. It reports all of them, those not won at once by a move to the
+  last rank, those that can come from the start (8077), and those of
+  them not won at once (3722); and, of those not won at once, how
+  often a WIN is for each tenth of the evaluation's probability of a
+  win. It is a measure, not a check, and `tests/evaldb.expected`
+  changes with the weights.
+- `tools/train.c --db` (`make train`, `make weights`) checks the
+  evaluation it learns in the same way, with its weights as floats
+  rather than the engine's hundredths.
+
+The figures of the README's evaluation are of the last 3722, where
+always guessing the more common value is right for 60%:
+
+| Weights                                                 | Right |
+|---------------------------------------------------------|-------|
+| `make weights`: self-play on every size (and `evaldb`)  | 85%   |
+| the same, on every size but 4x4 (`--sizes`)             | 84%   |
+| `make train TRAIN_ARGS="--fit 100"`: 3x2, fit to the DB | 88%   |
+| `make train TRAIN_ARGS="--fit 100 --window 3x3"`        | 92%   |
+
+`--fit` shows how much a layout of windows can know of the 4x4 board
+at all. It takes seconds, where `make weights` takes five minutes.
 
 ## The evaluation and its trainer
 
@@ -65,7 +139,7 @@ can know at all. Its comment has the details.
 the engine's weights with `WEIGHTS_ARGS` and writes them to
 `src/engine/eval_weights.h`, which is in git, with the command line
 that made them; a run is the same every time. After it, the tests that
-search have new expected outputs.
+search, and `evaldb`, have new expected outputs.
 
 The test `evalcheck` (`train --check-engine`) checks that the engine's
 evaluation, written for speed, is the sum of the weights of the

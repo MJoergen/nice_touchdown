@@ -16,7 +16,9 @@ Makefile, the tests, the platform layer, and the front ends.
   that are compared) and `*.expected`. `tools/runtest.sh` runs one test.
   `perftsuite.c` checks the move generator against a slow one, and
   `tablebase.c` the search against touchdown_db's 4x4 database; after a
-  change to the engine, both must still pass.
+  change to the engine, both must still pass. `tablebase eval` (the
+  test `evaldb`) measures `engine_eval` alone against the database;
+  its expected output changes with the weights.
 - `tools/`: `runtest.sh`; `train.c`, the trainer of the evaluation
   (`src/engine/eval_weights.h`, `make weights`); `size.py` and
   `board.py`, nice_chess's, for `make size` and the board; `mockup.py`
