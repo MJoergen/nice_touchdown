@@ -62,7 +62,7 @@ HOSTFLAGS = -O2 -W -Wall -Wextra
 # The host, without asserts, for the trainer.
 FASTFLAGS = -O2 -W -Wall -Wextra -DNDEBUG
 
-.PHONY: FORCE help all test host-test nice-test perft-deep train weights pawns size deps clean distclean dist
+.PHONY: FORCE help all test host-test nice-test perft-deep train weights solve pawns size deps clean distclean dist
 .PHONY: board-text board-screen board-test
 help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
@@ -75,6 +75,8 @@ help:
 	@echo "  make train         learn N-tuple weights by TD self-play on the host, and check them on 4x4"
 	@echo "                     (TRAIN_ARGS= options of tools/train.c), for experiments"
 	@echo "  make weights       learn the engine's weights into src/engine/eval_weights.h (5 minutes)"
+	@echo "  make solve         solve the start of boards on the host: who wins (SOLVE_ARGS= options"
+	@echo "                     and sizes of tools/solve.c; by default the sizes solved in under 30 s)"
 	@echo "  make size          the size of the MEGA65 builds, against the board's budget"
 	@echo "  make pawns         draw the pawns again into src/ui/pawns.h (needs Pillow)"
 	@echo "  make dist          the archive of a release, and SHA256SUMS, in build/dist/ (VERSION=V1.0)"
@@ -179,6 +181,17 @@ weights: build/host/train build/gen/touchdown4x4.txt
 	build/host/train --db build/gen/touchdown4x4.txt $(WEIGHTS_ARGS) --save build/train/weights.f32 \
 	  --header src/engine/eval_weights.h
 
+# The solver (tools/solve.c), on the host: whether the side to move
+# wins, by a depth-first search with a table of the positions solved.
+SOLVE_ARGS ?= 4x4 5x4 6x4 7x4 8x4 9x4 10x4 4x5 5x5 6x5 7x5 8x5 4x6 5x6 6x6
+
+build/host/solve: $(ENGINE) $(HEADERS) tools/solve.c
+	@mkdir -p $(@D)
+	$(CC) $(FASTFLAGS) -o $@ $(ENGINE) tools/solve.c
+
+solve: build/host/solve
+	build/host/solve $(SOLVE_ARGS)
+
 # touchdown_db, and its database of the 4x4 board: the value of every
 # position with at most 4 pawns a side (tests/tablebase.c). It needs
 # <cstdint> included, which its sources leave to older compilers, and
@@ -206,13 +219,15 @@ build/host/tablebase: $(ENGINE) $(HEADERS) tests/tablebase.c
 test: host-test nice-test
 
 host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/gen/touchdown4x4.txt \
-           build/host/train
+           build/host/train build/host/solve
 	@tools/runtest.sh host_evalcheck evalcheck /dev/null host build/host/train --check-engine 2700
 	@tools/runtest.sh host_text text tests/text.input host build/host/td_text
 	@tools/runtest.sh host_perft perft tests/perft.input host build/host/td_text
 	@tools/runtest.sh host_perftsuite5 perftsuite5 /dev/null host build/host/perftsuite 5 1000
 	@tools/runtest.sh host_tablebase tablebase build/gen/touchdown4x4.txt host build/host/tablebase 24
 	@tools/runtest.sh host_evaldb evaldb build/gen/touchdown4x4.txt host build/host/tablebase eval
+	@tools/runtest.sh host_solve solve /dev/null host build/host/solve --hash 64 --order plain \
+	  --check build/gen/touchdown4x4.txt 4x4 5x4 6x4 7x4 4x5 5x5 6x5 4x6 5x6
 	@tools/runtest.sh host_search search tests/search.input host build/host/td_text
 
 SCREEN_TESTS = screen screen_size screen_game screen_quit

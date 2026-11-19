@@ -18,6 +18,7 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make perft-deep  # the perft suite to depth 6, and 10000 games a size, on the host (about 2 minutes)
     make train       # learn N-tuple weights by TD self-play, and check them on 4x4 (about 1.5 minutes)
     make weights     # learn the engine's weights into src/engine/eval_weights.h (about 5 minutes)
+    make solve       # solve the start of the boards solved in under 30 s each: who wins (about a minute)
 
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
 and `NICEEMU=PATH` to make.
@@ -47,7 +48,8 @@ which the slow generator checks as they are made.
 
 `tests/tablebase.c` checks the search against touchdown_db's database
 of the 4x4 board, and measures the evaluation alone against it
-(below).
+(below). The test `solve` checks the solver against it too, and solves
+the boards up to 6x5 and 5x6.
 
 ## The 4x4 database
 
@@ -123,6 +125,55 @@ always guessing the more common value is right for 60%:
 
 `--fit` shows how much a layout of windows can know of the 4x4 board
 at all. It takes seconds, where `make weights` takes five minutes.
+
+## The solver
+
+`tools/solve.c` (`make solve`, with `SOLVE_ARGS`) finds, on the host,
+whether the side to move wins a position with best play: the start of
+a size, such as `6x4`, or a position as text. Its comment has the
+details. As every move takes a pawn one rank forward, a game is short
+and has no cycles, so a depth-first search that stops at the first
+move that wins, with a table of the positions it has solved, finds
+the value without a depth. The table keeps a position as the side to
+move sees it, and as the smaller of it and its mirror, so that a
+position, the same with the other side to move, and their mirrors
+share an entry.
+
+`--check FILE` solves every position of touchdown_db's 4x4 database
+and compares them; `--moves` gives the value of each move at the
+root; `--order plain` tries the moves in the order of the move
+generator rather than the evaluation's, which on these boards takes
+about as many nodes; `--hash MB` is the size of the table (1024).
+
+The figures, from the start, on one core:
+
+| Size | First player | Nodes   | Time  |
+|------|--------------|---------|-------|
+| 4x4  | WIN          | 276     |       |
+| 5x4  | LOSS         | 2497    |       |
+| 6x4  | LOSS         | 13177   |       |
+| 7x4  | WIN          | 72823   |       |
+| 8x4  | LOSS         | 643413  | 0.5 s |
+| 9x4  | WIN          | 2.8 M   | 1.8 s |
+| 10x4 | WIN          | 37 M    | 22 s  |
+| 11x4 | LOSS         | 240 M   | 153 s |
+| 4x5  | LOSS         | 1730    |       |
+| 5x5  | WIN          | 13982   |       |
+| 6x5  | LOSS         | 223550  | 0.2 s |
+| 7x5  | WIN          | 3.5 M   | 2.3 s |
+| 8x5  | WIN          | 38 M    | 25 s  |
+| 9x5  | WIN          | 381 M   | 255 s |
+| 4x6  | WIN          | 3826    |       |
+| 5x6  | WIN          | 145404  | 0.1 s |
+| 6x6  | LOSS         | 1.6 M   | 1.0 s |
+| 7x6  | LOSS         | 41 M    | 28 s  |
+| 8x6  | WIN          | 776 M   | 519 s |
+
+Those of 7x6 and above are with `--hash 6144`, six at a time. 12x4 and
+10x5 are not solved in 10 minutes; the larger boards, with more
+positions than the table holds, lose more of them to the
+replacement. The next steps would be a larger table on disk, or a
+proof-number search, which looks at fewer positions.
 
 ## The evaluation and its trainer
 

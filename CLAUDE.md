@@ -20,7 +20,8 @@ Makefile, the tests, the platform layer, and the front ends.
   test `evaldb`) measures `engine_eval` alone against the database;
   its expected output changes with the weights.
 - `tools/`: `runtest.sh`; `train.c`, the trainer of the evaluation
-  (`src/engine/eval_weights.h`, `make weights`); `size.py` and
+  (`src/engine/eval_weights.h`, `make weights`); `solve.c`, the
+  solver of positions and of the start of boards (`make solve`); `size.py` and
   `board.py`, nice_chess's, for `make size` and the board; `mockup.py`
   draws the mockups of the README; `mkpawns.py` draws the pawns into
   `src/ui/pawns.h` (`make pawns`).
@@ -44,6 +45,7 @@ Makefile, the tests, the platform layer, and the front ends.
     make size           # the MEGA65 builds against the 92K-word budget
     make train          # tools/train.c: N-tuple weights by TD self-play, checked on 4x4
     make weights        # the engine's weights, src/engine/eval_weights.h, by make train's way
+    make solve          # tools/solve.c: who wins the start of the boards solved in under 30 s
     make dist           # the archive of a release in build/dist/ (VERSION=V1.0)
 
 The board targets (`board-*`) need `ETH=IP` or `PORT=DEVICE` and a

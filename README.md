@@ -30,7 +30,8 @@ with no legal move, or no pawns, loses.
 
 There are no draws: every game ends with a winner, since every move
 takes a pawn one rank forward. On the 4x4 board the player to move
-first wins (touchdown_db).
+first wins (touchdown_db); [Solved boards](#solved-boards) has the
+other sizes.
 
 Moves are written as in chess, from-square then to-square, such as
 `b1b2` or `c3d4`. Files are `a` to `l`, ranks `1` to `6`.
@@ -239,6 +240,22 @@ each ply takes 5 to 6 times the one before. Depth 6 takes 0.5 seconds on 8x6
 and 2.8 seconds on 12x6, and depth 7 2.3 and 17 seconds: so depth 6
 is the default.
 
+### Solved boards
+
+`tools/solve.c` solves the start of a board on the host, by a
+depth-first search with a table of the positions it has solved
+(CONTRIBUTING.md has how). With best play, the first player, White:
+
+| Ranks \ Files  | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12 |
+|---------------|-----|-----|-----|-----|-----|-----|-----|-----|----|
+| 4             | win | loss | loss | win | loss | win | win | loss | ?  |
+| 5             | loss | win | loss | win | win | win | ?   |     |    |
+| 6             | win | win | loss | loss | win | ?   |     |     |    |
+
+The default board, 8x6, is a win for White, found in 9 minutes; the
+sizes marked ? are not solved in 10 minutes, and those left empty
+were not tried.
+
 ## After the first version
 
 The first version is the baseline. Ways to make it stronger, each
@@ -259,8 +276,7 @@ measured by matches against the version before:
   in the table.
 - **An opening book**: positions near the start, searched deeply on
   the host, with the best moves stored in the program.
-- **Solving boards**: with a tablebase and a deep search, finding the
-  value of the start position of boards larger than 4x4.
+- **Solving boards**: the sizes not solved yet (Solved boards), with a larger table, a proof-number search, or a tablebase.
 
 ## Building
 
