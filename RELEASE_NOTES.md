@@ -9,7 +9,7 @@ A release is named `Vmajor.minor`, and its files are
 names the nice_cpu tag the release is built with, and the NiceMonMEGA65
 release it was checked on.
 
-## V1.1 (unreleased)
+## V1.1 (2026-11-19)
 
 An evaluation, learned by self-play, which makes the engine much
 stronger at the same time a move. The release has the windowed front
@@ -19,7 +19,9 @@ end only.
 
 - The MEGA65 build, `mega65/touchdown.bin`, needs the monitor of
   NiceMonMEGA65 V2.0.1 or later, which loads files by their long
-  names. From the SD card: `load touchdown.bin`, then `r`.
+  names. From the SD card, with V2.2.1 or later, whose commands are
+  BASIC's: `load "touchdown.bin"`, then `sys 0x8000`; before V2.2.1,
+  `load touchdown.bin`, then `r`.
 - The build for niceemu, `niceemu/td_screen.bin`, needs niceemu's
   window build of nice_cpu V2.0 or later.
 
@@ -42,6 +44,9 @@ end only.
   at random.
 - The depth is 6 at first, which takes 0.5 seconds a move on the
   MEGA65 on 8x6 and 3 seconds on 12x6, as V1.0's depth 8 did.
+
+Built with nice_cpu V2.0, and checked on a MEGA65 R6 with
+NiceMonMEGA65 V2.3.2.
 
 ## V1.0 (2026-11-19)
 

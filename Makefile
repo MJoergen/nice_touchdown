@@ -239,8 +239,8 @@ size: build/mega65/td_text.bin build/mega65/td_screen.bin build/test/mon_td_text
 	$(PYTHON) tools/size.py --emu $(NICEEMU) --input tests/screen.keys --run build/test/mon_td_screen.bin \
 	  --budget $(BUDGET) --check build/mega65/td_screen.bin
 
-# The board. load.py loads a program under the monitor and types r, which
-# runs it; what it prints then comes on the line, such as nc IP 4510 or
+# The board. load.py loads a program under the monitor and types
+# SYS 0x8000, which runs it; what it prints then comes on the line, such as nc IP 4510 or
 # picocom -b 2000000 DEVICE (NiceMonMEGA65's tools/README.md).
 board-text: build/mega65/td_text.bin
 	$(PYTHON) $(NICEMON)/tools/load.py $(BOARDLINK) --monitor $<
