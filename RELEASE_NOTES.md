@@ -9,7 +9,7 @@ A release is named `Vmajor.minor`, and its files are
 names the nice_cpu tag the release is built with, and the NiceMonMEGA65
 release it was checked on.
 
-## V1.0 (unreleased)
+## V1.0 (2026-11-19)
 
 The first version: TouchDown on boards of 4x4 to 12x6, against an
 engine with a fixed-depth search, on the MEGA65's screen and keyboard,
@@ -46,4 +46,5 @@ on a console, in niceemu, and on a PC.
 - Checked against touchdown_db: at depth 24 it has the value of every
   position of the 4x4 board.
 
-Built with nice_cpu V2.0.
+Built with nice_cpu V2.0, and checked on a MEGA65 R6 with
+NiceMonMEGA65 V2.3.2.
