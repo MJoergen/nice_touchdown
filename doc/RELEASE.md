@@ -15,15 +15,16 @@ tree. The release workflow sets `VERSION` to the tag.
 - An annotated tag, whose message is the tag's section of
   [RELEASE_NOTES.md](../RELEASE_NOTES.md).
 - A GitHub release with that section as its text, and two files:
-  - `nice_touchdown-V1.0.tar.gz`, with `nice_touchdown-V1.0/`:
-    - `mega65/TD.BIN` and `mega65/TDT.BIN`, the windowed and the text
-      front ends for the MEGA65, under NiceMonMEGA65's monitor, with
-      8.3 names for its `load` from the SD card;
-    - `niceemu/td_text.bin` and `niceemu/td_screen.bin`, the front
-      ends for niceemu;
-    - `linux-x86_64/nice_touchdown`, the text front end on the host,
-      without asserts and linked statically;
+  - `nice_touchdown-V1.1.tar.gz`, with `nice_touchdown-V1.1/`:
+    - `mega65/touchdown.bin`, the windowed front end for the MEGA65,
+      under NiceMonMEGA65's monitor, which loads it from the SD card
+      by its long name (from V2.0.1 on);
+    - `niceemu/td_screen.bin`, the windowed front end for niceemu;
     - `README.md`, `RELEASE_NOTES.md`, and `LICENSE`.
+
+  The text front end is for development and the tests, and no release
+  has it from V1.1 on. (V1.0 had it for the MEGA65, niceemu, and the
+  host, and the MEGA65's windowed front end as `TD.BIN`.)
   - `SHA256SUMS`, the SHA-256 sum of the archive.
 
 `make dist` makes both in `build/dist/`.

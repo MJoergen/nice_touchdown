@@ -59,11 +59,8 @@ MONFLAGS = $(NICEFLAGS) --monitor
 
 # The host: with asserts.
 HOSTFLAGS = -O2 -W -Wall -Wextra
-# The host, for the release: without asserts, which play the same
-# moves, only faster, and linked statically, so that the release's
-# binary runs on any x86_64 Linux. It needs glibc's libc.a: libc6-dev
-# on Debian and Ubuntu, glibc-static on Fedora.
-FASTFLAGS = -O2 -W -Wall -Wextra -DNDEBUG -static
+# The host, without asserts, for the trainer.
+FASTFLAGS = -O2 -W -Wall -Wextra -DNDEBUG
 
 .PHONY: FORCE help all test host-test nice-test perft-deep train weights pawns size deps clean distclean dist
 .PHONY: board-text board-screen board-test
@@ -153,10 +150,6 @@ build/host/td_text: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/host.c $(VER
 # against a slow one, on every size of board. On NICE, which passes no
 # arguments, the depth and the games are set when it is built; the
 # checks are slow there, about 40 million steps a game.
-build/host/td_fast: $(ENGINE) $(HEADERS) src/ui/text.c src/platform/host.c $(VERSIONC)
-	@mkdir -p $(@D)
-	$(CC) $(FASTFLAGS) -o $@ $(ENGINE) $(VERSIONC) src/ui/text.c src/platform/host.c
-
 build/host/perftsuite: $(ENGINE) $(HEADERS) tests/perftsuite.c
 	@mkdir -p $(@D)
 	$(CC) $(HOSTFLAGS) -o $@ $(ENGINE) tests/perftsuite.c
@@ -175,7 +168,7 @@ WEIGHTS_ARGS ?= --sizes all --games 10000000 --seed 1 --report 1000000
 
 build/host/train: $(ENGINE) $(HEADERS) tools/train.c
 	@mkdir -p $(@D)
-	$(CC) $(FASTFLAGS:-static=) -o $@ $(ENGINE) tools/train.c -lm
+	$(CC) $(FASTFLAGS) -o $@ $(ENGINE) tools/train.c -lm
 
 train: build/host/train build/gen/touchdown4x4.txt
 	@mkdir -p build/train
@@ -265,22 +258,18 @@ board-test: build/mega65/td_text.bin
 	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_search search tests/search.input board build/mega65/td_text.bin
 
 # A release (doc/RELEASE.md): the archive nice_touchdown-VERSION.tar.gz,
-# whose directory holds the MEGA65 builds, under 8.3 names for the
-# monitor's load from the SD card (TD.BIN the windowed front end,
-# TDT.BIN the text front end), the builds for niceemu, the static host
-# build without asserts as nice_touchdown, and README.md,
-# RELEASE_NOTES.md, and LICENSE; and SHA256SUMS. The release workflow
-# runs it with VERSION set to the tag, after the tests and make size.
+# whose directory holds the windowed front end, for the MEGA65 as
+# touchdown.bin, which the monitor's load reads by its long name, and
+# for niceemu, and README.md, RELEASE_NOTES.md, and LICENSE; and
+# SHA256SUMS. The text front end is for development and the tests, and
+# is not released. The release workflow runs it with VERSION set to
+# the tag, after the tests and make size.
 DIST = build/dist
-dist: build/mega65/td_text.bin build/mega65/td_screen.bin build/nice/td_text.bin \
-      build/nice/td_screen.bin build/host/td_fast
+dist: build/mega65/td_screen.bin build/nice/td_screen.bin
 	rm -rf $(DIST)
-	mkdir -p $(DIST)/nice_touchdown-$(VERSION)/mega65 $(DIST)/nice_touchdown-$(VERSION)/niceemu \
-	  $(DIST)/nice_touchdown-$(VERSION)/linux-x86_64
-	cp build/mega65/td_screen.bin $(DIST)/nice_touchdown-$(VERSION)/mega65/TD.BIN
-	cp build/mega65/td_text.bin $(DIST)/nice_touchdown-$(VERSION)/mega65/TDT.BIN
-	cp build/nice/td_text.bin build/nice/td_screen.bin $(DIST)/nice_touchdown-$(VERSION)/niceemu/
-	cp build/host/td_fast $(DIST)/nice_touchdown-$(VERSION)/linux-x86_64/nice_touchdown
+	mkdir -p $(DIST)/nice_touchdown-$(VERSION)/mega65 $(DIST)/nice_touchdown-$(VERSION)/niceemu
+	cp build/mega65/td_screen.bin $(DIST)/nice_touchdown-$(VERSION)/mega65/touchdown.bin
+	cp build/nice/td_screen.bin $(DIST)/nice_touchdown-$(VERSION)/niceemu/
 	cp README.md RELEASE_NOTES.md LICENSE $(DIST)/nice_touchdown-$(VERSION)/
 	tar czf $(DIST)/nice_touchdown-$(VERSION).tar.gz -C $(DIST) --owner=0 --group=0 nice_touchdown-$(VERSION)
 	cd $(DIST) && sha256sum nice_touchdown-$(VERSION).tar.gz > SHA256SUMS

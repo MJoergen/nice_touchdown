@@ -12,7 +12,23 @@ release it was checked on.
 ## V1.1 (unreleased)
 
 An evaluation, learned by self-play, which makes the engine much
-stronger at the same time a move.
+stronger at the same time a move. The release has the windowed front
+end only.
+
+**What it needs**
+
+- The MEGA65 build, `mega65/touchdown.bin`, needs the monitor of
+  NiceMonMEGA65 V2.0.1 or later, which loads files by their long
+  names. From the SD card: `load touchdown.bin`, then `r`.
+- The build for niceemu, `niceemu/td_screen.bin`, needs niceemu's
+  window build of nice_cpu V2.0 or later.
+
+**Changes**
+
+- The MEGA65 build is `touchdown.bin`, where it was `TD.BIN`.
+- The text front end is no longer released or supported: V1.0's
+  `TDT.BIN`, `niceemu/td_text.bin`, and the host build
+  `nice_touchdown` are gone.
 
 **The engine**
 
@@ -20,15 +36,12 @@ stronger at the same time a move.
   3 files by 2 ranks, whose weights hold for every size of the board.
   It wins 95 to 99% of the games against V1.0's search at the same
   depth, and 89 to 94% at depth 6 against V1.0's depth 8.
-- The scores are Win in N, Loss in N, and the evaluation's probability
-  of a win, such as `62%`; among the moves of the best probability the
-  engine plays one at random.
+- The scores on the screen are Win in N, Loss in N, and the
+  evaluation's probability of a win, such as `62%`, where V1.0 showed
+  Even; among the moves of the best probability the engine plays one
+  at random.
 - The depth is 6 at first, which takes 0.5 seconds a move on the
   MEGA65 on 8x6 and 3 seconds on 12x6, as V1.0's depth 8 did.
-
-**The text front end**
-
-- `eval on|off`: `eval off` is V1.0's search, without the evaluation.
 
 ## V1.0 (2026-11-19)
 

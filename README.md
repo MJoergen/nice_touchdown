@@ -8,12 +8,10 @@ entered by the keyboard, in the same way as
 those of [touchdown_db](https://github.com/MJoergen/touchdown_db), which
 solves the 4x4 board.
 
-Status: the first version is built and tested on the host and in
-niceemu, and fits the MEGA65 with room to spare; it is not yet tried on
-the MEGA65 itself, nor released. [RELEASE_NOTES.md](RELEASE_NOTES.md)
-says what it has. This
-README is the design. Each section says what is planned for the first
-version, and the last section what may come after.
+Status: V1.0, the first version, is released, and V1.1 adds an
+evaluation learned by self-play, which this README describes too;
+[RELEASE_NOTES.md](RELEASE_NOTES.md) says what each release has. This
+README is the design. Its last section says what may come after.
 
 ## The game
 
@@ -109,7 +107,8 @@ clock, and no malloc, built for NICE and for the host. Around it:
 - the windowed front end, for the MEGA65 (under NiceMonMEGA65's
   monitor) and for niceemu's window;
 - the text front end, for the board's debug UART or Ethernet, for
-  niceemu, and for a terminal on the host.
+  niceemu, and for a terminal on the host. It is for development and
+  the tests: a release has the windowed front end only.
 
 The text front end has commands such as:
 

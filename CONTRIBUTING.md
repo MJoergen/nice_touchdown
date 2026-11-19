@@ -20,9 +20,7 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make weights     # learn the engine's weights into src/engine/eval_weights.h (about 5 minutes)
 
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
-and `NICEEMU=PATH` to make. `make dist` links the host build statically,
-which needs glibc's static library: `libc6-dev` on Debian and Ubuntu,
-`glibc-static` on Fedora.
+and `NICEEMU=PATH` to make.
 
 On a MEGA65 under NiceMonMEGA65's monitor, with `ETH=IP` or
 `PORT=DEVICE`, and a checkout of NiceMonMEGA65 (`NICEMON=DIR`):
