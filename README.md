@@ -120,8 +120,10 @@ The text front end has commands such as:
     undo           take back the last move
     go             the engine searches to the depth set and moves
     go depth 6     the engine searches to depth 6 and moves
-    depth 10       the depth of go, 1 to 32 (8 at first)
-    seed 1         the seed of the engine's choice among Even moves
+    depth 10       the depth of go, 1 to 32 (6 at first)
+    eval off       the search without its evaluation, as the first
+                   version's (eval on, at first)
+    seed 1         the seed of the engine's choice among moves as good
     d              show the board
     perft 5        count the positions 5 moves ahead
     divide 5       perft 5, for each legal move
@@ -138,8 +140,8 @@ tests.
 
 ## The engine
 
-The first version is simple on purpose. Later versions are measured
-against it.
+The first version is simple on purpose: its search has no evaluation
+(`eval off`). Later versions are measured against it.
 
 ### The search
 
@@ -153,24 +155,53 @@ result.
 
 ### The evaluation
 
-A position has one of three values, from the side to move:
+A position has a value from the side to move:
 
 - **Win**: the side to move wins, whatever the opponent does, within
   the depth searched.
 - **Loss**: the opponent wins, within the depth.
-- **Even**: neither is proved within the depth.
+- Otherwise, neither is proved within the depth, and the value is the
+  evaluation's: the probability that the side to move wins.
 
-At a leaf the evaluation is Even, unless the game is over. Since there
-are no draws in TouchDown, Even does not mean a draw: it means "not
-known yet". A Win or a Loss found by the search is exact.
+A Win or a Loss found by the search is exact. A Win is stored as a
+large number less the number of plies to it, so the engine prefers
+the fastest win and, when every move loses, the slowest loss. Among
+the moves of the best value that is not proved it picks one at
+random, so the games differ; in niceemu the seed is fixed, so a run
+is the same each time.
 
-A Win is stored as a large number less the number of plies to it, so
-the engine prefers the fastest win and, when every move loses, the
-slowest loss. Among Even moves it picks one at random, so the games
-differ; in niceemu the seed is fixed, so a run is the same each time.
+The evaluation is an N-tuple network, as nice_othello's. A window of
+3 files by 2 ranks is placed at every place on the board, from the
+view of the side to move; its 6 squares are each empty, the side's,
+or the opponent's, so it is in one of 729 states, and each state has
+a weight. The evaluation is the sum of the weights of all the windows:
+the logit of the probability of a win, in hundredths. The windows of
+all files share one table, so that the weights hold for every width
+of the board; there is a table for each number of ranks and each pair
+of ranks, and in each for the windows inside the board and at its
+edges (mirrored, so that the left and right edges share them). That
+is 17496 weights of 16 bits, 8748 words. An evaluation is a few table
+lookups a window, with no multiplication.
 
-The screen shows the score as `Even`, `Win in N` or `Loss in N`, where
-N counts plies.
+`tools/train.c` learns the weights by self-play on the host, with
+TD(λ), on boards of every size (`make weights`, five minutes on one
+core). It checks them against touchdown_db: of the positions of the
+4x4 board that can come from the start, and are not won by a move to
+the last rank at once, the sign of the evaluation alone is right for
+85%, where always guessing the more common value is right for 60%.
+Weights learned on every size but 4x4 are right for 84%: what is
+learned on the other sizes holds on one never seen.
+
+`eval off` turns the evaluation off: the value of a position not
+proved is then Even, as in the first version, against which the
+engine is measured. In matches of 200 games from random openings,
+each played with both colors, the evaluation wins 95 to 99% at the
+same depth, on 8x6 and 12x6, and at depth 6 it wins 89 to 94% against
+depth 8 without it, with fewer nodes.
+
+The screen shows the score as `Win in N` or `Loss in N`, where N
+counts plies, or as the probability of a win, such as `62%`; or
+`Even`, with the evaluation off.
 
 ### The board
 
@@ -191,10 +222,18 @@ N - 1. For every size, the move generator is checked against a plain,
 slow one, at every node of the move tree from the start and of games
 at random to their end.
 
-The search costs about 450 steps a node in niceemu, and each ply about
-2.8 times the one before. From the start, depth 8 takes 0.4 seconds
-on the MEGA65 on 8x6 and 3.2 seconds on 12x6, and depth 10 3.3 and 37
-seconds: so depth 8 is the default.
+The evaluation is checked against the trainer's own: in every
+position of 2700 games at random on every size, it is the sum of the
+weights of the trainer's windows.
+
+Without the evaluation, the search costs about 450 steps a node in
+niceemu, and depth 8 from the start takes 0.4 seconds on the MEGA65
+on 8x6 and 3.2 seconds on 12x6. With the evaluation, a node costs
+about 1100 steps on 8x6, and the search, which no longer has the many
+equal values of Even to cut off, takes more nodes: from the start,
+each ply takes 5 to 6 times the one before. Depth 6 takes 0.5 seconds on 8x6
+and 2.8 seconds on 12x6, and depth 7 2.3 and 17 seconds: so depth 6
+is the default.
 
 ## After the first version
 
@@ -203,11 +242,13 @@ measured by matches against the version before:
 
 - **A better search**: iterative deepening, a transposition table with
   Zobrist keys, killer moves, and a time control, as in nice_chess.
-- **A neural network evaluation**: a small network that gives each
-  position a probability of a win in place of Even. touchdown_db's
-  `touchdown_nn.py` already trains such networks on the 4x4 board,
-  with accuracies of 99.15% to 99.99%. On NICE the network must use
-  integer weights, and be small enough in words and in steps a node.
+- **A better evaluation**: more windows, such as 2 files by 3 ranks,
+  or 3 by 3, which knows 92% of the 4x4 positions above where 3 by 2
+  knows 88%, in as many words as the MEGA65 has to spare; and an
+  evaluation kept up to date as moves are made, rather than summed at
+  each leaf. touchdown_db's `touchdown_nn.py` trains networks of
+  hidden layers on the 4x4 board, with accuracies of 99.15% to
+  99.99%, but for that size only.
 - **An endgame tablebase**: the exact value of every position with few
   pawns, made on the host as touchdown_db does, and stored in the
   program or loaded from the SD card. The search stops at a position

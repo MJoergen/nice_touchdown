@@ -11,8 +11,9 @@
  *   undo             take back the last move
  *   go [depth N]     the engine searches, to N plies or the depth set,
  *                    and moves
- *   depth N          the depth of go, 1 to 32 (8 at first)
- *   seed N           the seed of the engine's choice among Even moves
+ *   depth N          the depth of go, 1 to 32 (6 at first)
+ *   eval on|off      whether the engine uses its evaluation (on at first)
+ *   seed N           the seed of the engine's choice among moves as good
  *   perft N          count the paths of the move tree of depth N
  *   divide N         perft N, for each legal move
  *   help             list the commands
@@ -23,10 +24,13 @@
  * an empty square, then the side to move, x or o.
  *
  * go prints the search's depth, score, nodes, and principal variation
- * as "info depth 6 score Even nodes 1234 pv a1a2 ...", then plays the
- * move. The score is Even, Win in N, or Loss in N, N in plies. Among
- * Even moves the engine picks one at random, by the seed: from the
- * clock on a PC and on a board, and 1 in niceemu (platform_seed).
+ * as "info depth 6 score 62% nodes 1234 pv a1a2 ...", then plays the
+ * move. The score is Win in N or Loss in N, N in plies, or if neither
+ * is proved, the evaluation's probability of a win for the side to
+ * move, such as 62%, or Even with eval off. Among the moves of the
+ * best score that is not a win or a loss, the engine picks one at
+ * random, by the seed: from the clock on a PC and on a board, and 1
+ * in niceemu (platform_seed).
  *
  * Copyright (c) 2026 Michael Jørgensen. MIT license (see LICENSE).
  ***************************************************************/
@@ -116,7 +120,8 @@ static void print_help(void)
            "  undo             take back the last move\n"
            "  go [depth N]     the engine searches, to N plies or the depth set, and moves\n"
            "  depth N          the depth of go, 1 to 32\n"
-           "  seed N           the seed of the engine's choice among Even moves\n"
+           "  eval on|off      whether the engine uses its evaluation\n"
+           "  seed N           the seed of the engine's choice among moves as good\n"
            "  perft N          count the paths of the move tree of depth N\n"
            "  divide N         perft N, for each legal move\n"
            "  help             list the commands\n"
@@ -232,7 +237,7 @@ static void do_undo(void)
         printf("No move to take back\n");
 }
 
-static int search_depth = 8;
+static int search_depth = 6;
 
 static void do_depth(const char *arg)
 {
@@ -251,6 +256,16 @@ static void do_seed(const char *arg)
         printf("The seed is a number\n");
     else
         engine_seed((uint32_t) n);
+}
+
+static void do_eval(const char *arg)
+{
+    if (!strcmp(arg, "on"))
+        engine_set_eval(1);
+    else if (!strcmp(arg, "off"))
+        engine_set_eval(0);
+    else
+        printf("The evaluation is %s: eval on or eval off\n", engine_eval_on() ? "on" : "off");
 }
 
 static void do_go(char *arg)
@@ -361,6 +376,8 @@ int main(void)
             do_depth(arg);
         else if (!strcmp(cmd, "seed"))
             do_seed(arg);
+        else if (!strcmp(cmd, "eval"))
+            do_eval(arg);
         else if (!strcmp(cmd, "perft"))
             do_perft(arg, 0);
         else if (!strcmp(cmd, "divide"))

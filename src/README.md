@@ -11,10 +11,15 @@
   - `notation.c`: moves as text (`b1b2`), and positions as text
     (`OOOO/..../..../XXXX x`, touchdown_db's letters).
   - `perft.c`: perft.
+  - `eval.c`: the evaluation of a leaf: an N-tuple network of windows
+    of 3 files by 2 ranks, whose weights, in `eval_weights.h`,
+    `tools/train.c` learns by self-play (`make weights`).
+    `eval_weights.h` is written by it; do not edit it.
   - `search.c`: negamax with alpha-beta pruning to a fixed depth. Its
-    scores are Win in N, Loss in N, and Even; among Even moves the
-    root picks one at random, by the seed. Its positions and move lists
-    are kept by ply in its own data, not on the stack.
+    scores are Win in N, Loss in N, and the evaluation, or Even without
+    it; among the moves of the best score that is not proved, the root
+    picks one at random, by the seed. Its positions and move lists are
+    kept by ply in its own data, not on the stack.
   - `game.c`: the game as the front ends see it: its positions, its
     moves, undo, and its result.
 - `platform/`: the clock, the default time of a move, the rate of the

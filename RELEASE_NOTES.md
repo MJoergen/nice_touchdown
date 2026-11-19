@@ -9,6 +9,27 @@ A release is named `Vmajor.minor`, and its files are
 names the nice_cpu tag the release is built with, and the NiceMonMEGA65
 release it was checked on.
 
+## V1.1 (unreleased)
+
+An evaluation, learned by self-play, which makes the engine much
+stronger at the same time a move.
+
+**The engine**
+
+- An evaluation learned by self-play: an N-tuple network of windows of
+  3 files by 2 ranks, whose weights hold for every size of the board.
+  It wins 95 to 99% of the games against V1.0's search at the same
+  depth, and 89 to 94% at depth 6 against V1.0's depth 8.
+- The scores are Win in N, Loss in N, and the evaluation's probability
+  of a win, such as `62%`; among the moves of the best probability the
+  engine plays one at random.
+- The depth is 6 at first, which takes 0.5 seconds a move on the
+  MEGA65 on 8x6 and 3 seconds on 12x6, as V1.0's depth 8 did.
+
+**The text front end**
+
+- `eval on|off`: `eval off` is V1.0's search, without the evaluation.
+
 ## V1.0 (2026-11-19)
 
 The first version: TouchDown on boards of 4x4 to 12x6, against an

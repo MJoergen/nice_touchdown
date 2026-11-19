@@ -123,7 +123,7 @@ static char   typed[5];            // The move being typed
 static int    n_typed;
 static const char *message = "";   // A line for the last thing that went wrong
 static char   msg_buf[40];
-static int    depth = 8;           // Of the engine's search
+static int    depth = 6;           // Of the engine's search
 
 // What the engine thought about its last move.
 static engine_search_t info;

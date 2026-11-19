@@ -13,7 +13,7 @@
  * a position has them. For each it searches the position to DEPTH,
  * which must reach the end of every game, and checks that
  *
- *   - its value is touchdown_db's, WIN or LOSS, and never Even;
+ *   - its value is touchdown_db's, WIN or LOSS, and always proved;
  *   - in a WIN, the move it plays leads to a position that
  *     touchdown_db has as a LOSS for the opponent;
  *   - in a "Win in N", that position searches as "Loss in N - 1".
@@ -131,8 +131,8 @@ int main(int argc, char **argv)
         nodes += r.nodes;
         wins += win_of[i];
         losses += !win_of[i];
-        if (r.score == 0)
-            error(texts[i], "Even at this depth");
+        if (!ENGINE_PROVED(r.score))
+            error(texts[i], "not proved at this depth");
         else if ((r.score > 0) != win_of[i])
             error(texts[i], win_of[i] ? "a WIN, searched as a loss" : "a LOSS, searched as a win");
         else if (r.score > 0)

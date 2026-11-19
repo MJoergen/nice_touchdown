@@ -65,7 +65,7 @@ HOSTFLAGS = -O2 -W -Wall -Wextra
 # on Debian and Ubuntu, glibc-static on Fedora.
 FASTFLAGS = -O2 -W -Wall -Wextra -DNDEBUG -static
 
-.PHONY: FORCE help all test host-test nice-test perft-deep pawns size deps clean distclean dist
+.PHONY: FORCE help all test host-test nice-test perft-deep train weights pawns size deps clean distclean dist
 .PHONY: board-text board-screen board-test
 help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
@@ -75,6 +75,9 @@ help:
 	@echo "  make all           build both front ends, for niceemu and for the MEGA65, and the text one for the host"
 	@echo "  make test          the tests, on the host and in niceemu"
 	@echo "  make perft-deep    the perft suite to depth 6, and 10000 games a size, on the host (a minute)"
+	@echo "  make train         learn N-tuple weights by TD self-play on the host, and check them on 4x4"
+	@echo "                     (TRAIN_ARGS= options of tools/train.c), for experiments"
+	@echo "  make weights       learn the engine's weights into src/engine/eval_weights.h (5 minutes)"
 	@echo "  make size          the size of the MEGA65 builds, against the board's budget"
 	@echo "  make pawns         draw the pawns again into src/ui/pawns.h (needs Pillow)"
 	@echo "  make dist          the archive of a release, and SHA256SUMS, in build/dist/ (VERSION=V1.0)"
@@ -162,6 +165,27 @@ build/nice/perftsuite.bin: $(ENGINE) $(HEADERS) tests/perftsuite.c $(TOOLCHAIN)
 	@mkdir -p $(@D)
 	$(NICEBUILD) $(NICEFLAGS) -D PERFT_DEPTH=2 -D PERFT_GAMES=4 -o $@ $(ENGINE) tests/perftsuite.c
 
+# The trainer of the evaluation (tools/train.c), on the host. It checks
+# its weights against touchdown_db's 4x4 database every --report games.
+# make train is for experiments; make weights writes the engine's
+# weights, src/engine/eval_weights.h, which is in git. A run is the same
+# every time, so the weights are what WEIGHTS_ARGS make.
+TRAIN_ARGS ?= --sizes all --games 3000000 --report 500000
+WEIGHTS_ARGS ?= --sizes all --games 10000000 --seed 1 --report 1000000
+
+build/host/train: $(ENGINE) $(HEADERS) tools/train.c
+	@mkdir -p $(@D)
+	$(CC) $(FASTFLAGS:-static=) -o $@ $(ENGINE) tools/train.c -lm
+
+train: build/host/train build/gen/touchdown4x4.txt
+	@mkdir -p build/train
+	build/host/train --db build/gen/touchdown4x4.txt --save build/train/weights.f32 $(TRAIN_ARGS)
+
+weights: build/host/train build/gen/touchdown4x4.txt
+	@mkdir -p build/train
+	build/host/train --db build/gen/touchdown4x4.txt $(WEIGHTS_ARGS) --save build/train/weights.f32 \
+	  --header src/engine/eval_weights.h
+
 # touchdown_db, and its database of the 4x4 board: the value of every
 # position with at most 4 pawns a side (tests/tablebase.c). It needs
 # <cstdint> included, which its sources leave to older compilers, and
@@ -188,7 +212,9 @@ build/host/tablebase: $(ENGINE) $(HEADERS) tests/tablebase.c
 
 test: host-test nice-test
 
-host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/gen/touchdown4x4.txt
+host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/gen/touchdown4x4.txt \
+           build/host/train
+	@tools/runtest.sh host_evalcheck evalcheck /dev/null host build/host/train --check-engine 2700
 	@tools/runtest.sh host_text text tests/text.input host build/host/td_text
 	@tools/runtest.sh host_perft perft tests/perft.input host build/host/td_text
 	@tools/runtest.sh host_perftsuite5 perftsuite5 /dev/null host build/host/perftsuite 5 1000

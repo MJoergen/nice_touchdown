@@ -158,6 +158,25 @@ int engine_undo(void);
 int engine_result(void);
 
 /***************************************************************
+ * eval.c: the evaluation, an N-tuple network.
+ ***************************************************************/
+
+// The most an evaluation is from 0: far below a Win or a Loss.
+#define ENGINE_EVAL_MAX 5000
+
+// The evaluation of p, which must not be over, from the side to move:
+// the logit of the probability that it wins, in hundredths, from
+// -ENGINE_EVAL_MAX to ENGINE_EVAL_MAX. It is the sum of the weights of
+// windows of 3 files by 2 ranks, at every place on the board, learned
+// by self-play (tools/train.c, src/engine/eval_weights.h).
+int engine_eval(const position_t *p);
+
+// Whether the search uses the evaluation (1, at first), or scores
+// every leaf as Even (0), as the first version did.
+void engine_set_eval(int on);
+int engine_eval_on(void);
+
+/***************************************************************
  * search.c: negamax with alpha-beta pruning, to a fixed depth.
  ***************************************************************/
 
@@ -165,9 +184,11 @@ int engine_result(void);
 #define ENGINE_MAX_DEPTH 32
 
 // A score, from the side to move: ENGINE_WIN - N is a win in N plies,
-// -(ENGINE_WIN - N) a loss in N plies, and 0 Even: neither is proved
-// within the depth.
+// -(ENGINE_WIN - N) a loss in N plies, and from -ENGINE_EVAL_MAX to
+// ENGINE_EVAL_MAX the evaluation: neither is proved within the depth.
+// Without the evaluation, that is 0, Even.
 #define ENGINE_WIN 10000
+#define ENGINE_PROVED(score) ((score) > ENGINE_EVAL_MAX || (score) < -ENGINE_EVAL_MAX)
 
 typedef struct
 {
@@ -180,7 +201,8 @@ typedef struct
     int stopped;                   // Whether stop ended it early
 } engine_search_t;
 
-// The seed of the choice at random among the Even moves.
+// The seed of the choice at random among the moves of the best score
+// that is not a Win.
 void engine_seed(uint32_t seed);
 
 // Searches p to depth plies, 1 to ENGINE_MAX_DEPTH, and writes the
@@ -189,8 +211,10 @@ void engine_seed(uint32_t seed);
 // moves searched, or the first move.
 void engine_search(const position_t *p, int depth, int (*stop)(void), engine_search_t *r);
 
-// Writes a score as "Even", "Win in N", or "Loss in N" (N in plies)
-// to s, of at least 16 bytes, and returns s.
+// Writes a score as "Win in N" or "Loss in N" (N in plies), or, if it
+// is not proved, as the probability of a win of the evaluation, such
+// as "62%", or "Even" without the evaluation, to s, of at least 16
+// bytes, and returns s.
 char *engine_score_str(int score, char *s);
 
 /***************************************************************

@@ -1,19 +1,19 @@
 /***************************************************************
  * search.c: negamax with alpha-beta pruning, to a fixed depth.
  *
- * A position has one of three values, from the side to move: a Win
- * (ENGINE_WIN less the plies to it), a Loss (the negative of one),
- * or Even (0): neither is proved within the depth. A leaf is Even
- * unless the game is over there. As every move takes a pawn forward,
- * a game has no repetitions and no draws, and a Win or Loss found is
- * exact.
+ * A position has a value from the side to move: a Win (ENGINE_WIN
+ * less the plies to it), a Loss (the negative of one), or, if neither
+ * is proved within the depth, the evaluation of eval.c, or 0, Even,
+ * without it. A leaf has that unless the game is over there. As every
+ * move takes a pawn forward, a game has no repetitions and no draws,
+ * and a Win or Loss found is exact.
  *
- * The root searches its moves so that it knows each Even move as Even:
- * until it has an Even move, with a full window, so that the slowest
- * loss is exact when every move loses; then with alpha -1, so that a
- * later Even move scores 0 exactly; and once it has a win, with alpha
- * at that win, for a faster one only. Among its Even moves it picks
- * one at random.
+ * The root searches its first move with a full window, and each other
+ * with alpha at the best score so far, so that it learns only of a
+ * better one: a faster win, or a slower loss. But while the best is
+ * not proved, alpha is one less, so that a move as good scores the
+ * same, exactly. Among the moves of the best score, when that is not
+ * proved, it picks one at random.
  *
  * The positions and move lists of the plies are in the engine's own
  * data, so the recursion takes little of the stack.
@@ -33,6 +33,7 @@ static move_t pv[ENGINE_MAX_DEPTH + 1][ENGINE_MAX_DEPTH];
 static int pv_len[ENGINE_MAX_DEPTH + 1];
 
 static uint32_t nodes;
+static int eval_on;
 static int (*stop_fn)(void);
 static int stopped;
 
@@ -81,7 +82,7 @@ static int negamax(int ply, int depth, int alpha, int beta)
     if (n == 0)
         return -(ENGINE_WIN - ply);
     if (depth == 0)
-        return 0;
+        return eval_on ? engine_eval(&stack_pos[ply]) : 0;
 
     int best = -INF;
     for (int i = 0; i < n; i++)
@@ -110,11 +111,12 @@ static int negamax(int ply, int depth, int alpha, int beta)
 
 void engine_search(const position_t *p, int depth, int (*stop)(void), engine_search_t *r)
 {
-    // The principal variation of each Even move of the root.
-    static move_t even_pv[ENGINE_MAX_MOVES][ENGINE_MAX_DEPTH];
-    static int even_len[ENGINE_MAX_MOVES];
-    move_t even[ENGINE_MAX_MOVES];
-    int n_even = 0;
+    // The moves of the best score, if it is not proved, and the
+    // principal variation of each.
+    static move_t tie_pv[ENGINE_MAX_MOVES][ENGINE_MAX_DEPTH];
+    static int tie_len[ENGINE_MAX_MOVES];
+    move_t tie[ENGINE_MAX_MOVES];
+    int n_tie = 0;
 
     if (depth < 1)
         depth = 1;
@@ -122,6 +124,7 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
         depth = ENGINE_MAX_DEPTH;
 
     nodes = 0;
+    eval_on = engine_eval_on();
     stop_fn = stop;
     stopped = 0;
     stack_pos[0] = *p;
@@ -144,24 +147,26 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
     int best = -INF;
     for (int i = 0; i < n; i++)
     {
-        int alpha = best > 0 ? best : best == 0 ? -1 : -INF;
+        int alpha = best == -INF || ENGINE_PROVED(best) ? best : best - 1;
         engine_make(p, list[i], &stack_pos[1]);
         int score = -negamax(1, depth - 1, -INF, -alpha);
         if (stopped)
             break;
-        if (score <= alpha || (score != 0 && score <= best))
-            continue; // Not better, nor another Even move
+        if (score <= alpha)
+            continue; // Not better, nor as good
 
         // The score is exact, inside the window, and so is the
-        // principal variation of the move.
+        // principal variation of the move. It is the best so far, or
+        // as good as the best, which is not proved.
+        if (score > best)
+            n_tie = 0;
+        best = score;
         move_t *v;
-        if (score == 0)
+        if (!ENGINE_PROVED(score))
         {
-            if (best < 0)
-                n_even = 0;
-            even_len[n_even] = pv_len[1] + 1;
-            even[n_even] = list[i];
-            v = even_pv[n_even++];
+            tie_len[n_tie] = pv_len[1] + 1;
+            tie[n_tie] = list[i];
+            v = tie_pv[n_tie++];
         }
         else
         {
@@ -169,7 +174,6 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
             r->pv_len = pv_len[1] + 1;
             v = r->pv;
         }
-        best = score;
         v[0] = list[i];
         for (int j = 0; j < pv_len[1]; j++)
             v[j + 1] = pv[1][j];
@@ -184,34 +188,63 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
         r->pv_len = 1;
         best = 0;
     }
-    else if (best == 0)
+    else if (!ENGINE_PROVED(best))
     {
-        int k = (int) rnd((uint32_t) n_even);
-        r->move = even[k];
-        r->pv_len = even_len[k];
-        for (int j = 0; j < even_len[k]; j++)
-            r->pv[j] = even_pv[k][j];
+        int k = (int) rnd((uint32_t) n_tie);
+        r->move = tie[k];
+        r->pv_len = tie_len[k];
+        for (int j = 0; j < tie_len[k]; j++)
+            r->pv[j] = tie_pv[k][j];
     }
     r->score = best;
     r->nodes = nodes;
 }
 
+// The probability of a win, in percent, of an evaluation of 10 * i
+// hundredths of a logit: 100 / (1 + e^(-i / 10)), at most 99, as only
+// a proved score is a sure win.
+static const uint8_t percent[51] = {
+    50, 52, 55, 57, 60, 62, 65, 67, 69, 71, 73, 75, 77, 79, 80, 82, 83,
+    85, 86, 87, 88, 89, 90, 91, 92, 92, 93, 94, 94, 95, 95, 96, 96, 96,
+    97, 97, 97, 98, 98, 98, 98, 98, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+};
+
+// Writes n, of 0 to 99999, in decimal to c, and returns the end.
+static char *put_number(char *c, int n)
+{
+    char digits[8];
+    int k = 0;
+    do
+        digits[k++] = (char) ('0' + n % 10);
+    while ((n /= 10) > 0);
+    while (k > 0)
+        *c++ = digits[--k];
+    return c;
+}
+
 char *engine_score_str(int score, char *s)
 {
-    const char *word = score > 0 ? "Win in " : score < 0 ? "Loss in " : "Even";
-    int plies = score > 0 ? ENGINE_WIN - score : ENGINE_WIN + score;
     char *c = s;
-    while (*word)
-        *c++ = *word++;
-    if (score != 0)
+    const char *word;
+    if (ENGINE_PROVED(score))
     {
-        char digits[8];
-        int k = 0;
-        do
-            digits[k++] = (char) ('0' + plies % 10);
-        while ((plies /= 10) > 0);
-        while (k > 0)
-            *c++ = digits[--k];
+        word = score > 0 ? "Win in " : "Loss in ";
+        while (*word)
+            *c++ = *word++;
+        c = put_number(c, score > 0 ? ENGINE_WIN - score : ENGINE_WIN + score);
+    }
+    else if (!engine_eval_on())
+    {
+        word = "Even";
+        while (*word)
+            *c++ = *word++;
+    }
+    else
+    {
+        int i = (score < 0 ? -score : score) + 5;
+        i = i >= 510 ? 50 : i / 10;
+        c = put_number(c, score < 0 ? 100 - percent[i] : percent[i]);
+        *c++ = '%';
     }
     *c = '\0';
     return s;

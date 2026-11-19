@@ -20,7 +20,7 @@ new 6x4
 go
 go
 new 8x6
-depth 8
+depth 5
 go
 go
 go
@@ -30,4 +30,13 @@ seed 7
 go
 go
 seed x
+eval off
+new 8x6
+go depth 8
+eval
+eval on
+eval
+eval x
+new 8x6
+go
 quit
