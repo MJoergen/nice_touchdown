@@ -191,10 +191,15 @@ int engine_eval_on(void);
 #define ENGINE_PROVED(score) ((score) > ENGINE_EVAL_MAX || (score) < -ENGINE_EVAL_MAX)
 
 // A Win, or the negative of it a Loss, that the opening book has
-// (book.c), in plies it does not know: at the start of a size that the
-// solver of the host solves, and after White's first move there when
-// White loses. The search gives it only when it proves neither itself.
+// (book.c), in plies it does not know: in the first moves of a size
+// that the solver of the host solves. The search gives it only when it
+// proves neither itself.
 #define ENGINE_BOOK_WIN (ENGINE_WIN - 1000)
+
+// Whether the search uses the opening book (1, at first). The solver
+// of the host turns it off for its games, so that the book it writes
+// does not depend on the one built in.
+void engine_set_book(int on);
 
 typedef struct
 {

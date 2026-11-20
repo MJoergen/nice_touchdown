@@ -40,6 +40,10 @@
  * --check FILE solves every position of a database (tools/db.h), with
  * one table, and compares them with its values.
  *
+ * --book FILE writes the engine's opening book (book.h) of the start
+ * of the sizes: the first two moves of the side that wins, all that
+ * win, culled with --cull-games (below, at --book).
+ *
  * --dump FILE writes, as a database, every position that can come
  * from its one argument, with its value: a search of every move, with
  * no rule of races and no stop at a move that wins, and with a table
@@ -54,6 +58,8 @@
  ***************************************************************/
 
 #include <pthread.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -520,19 +526,314 @@ static int winning_moves(const position_t *p, move_t *out)
     return k;
 }
 
-// Writes the moves of list, n of them, as text to fp.
-static void book_moves_str(FILE *fp, const move_t *list, int n)
+// The plies of the side that wins that the book has: its first move,
+// and its next against each reply.
+#define BOOK_DEPTH 2
+
+// The cull (--cull-games): each move of the book is played on from,
+// in cull_games games at each depth of cull_depths, by the engine
+// against itself, and the moves whose side wins fewer games than with
+// the best move of the position, by more than cull_margin, go.
+static int cull_games;
+static int cull_depths[8] = {6, 8};
+static int n_cull_depths = 2;
+static int cull_margin = 2;
+
+// A position of the book, a WIN for its side to move: its moves that
+// win, and for each, the games won from it and whether it stays, and,
+// above the last level, the node after each reply, in the order of
+// engine_moves.
+typedef struct bnode
+{
+    position_t pos;
+    int k;
+    move_t moves[ENGINE_MAX_MOVES];
+    int won[ENGINE_MAX_MOVES];
+    int keep[ENGINE_MAX_MOVES];
+    int n_rep[ENGINE_MAX_MOVES];
+    struct bnode *child[ENGINE_MAX_MOVES];
+} bnode_t;
+
+static long book_nodes;
+
+static bnode_t *book_build(const position_t *p, int depth)
+{
+    move_t list[ENGINE_MAX_MOVES];
+    position_t q;
+    char text[ENGINE_POSITION_STR_SIZE];
+    bnode_t *b = calloc(1, sizeof *b);
+    if (!b)
+    {
+        perror("solve");
+        exit(1);
+    }
+    b->pos = *p;
+    b->k = winning_moves(p, b->moves);
+    if (!b->k)
+    {
+        fprintf(stderr, "solve: %s: no move wins\n", engine_position_str(p, text));
+        exit(1);
+    }
+    book_nodes++;
+    for (int i = 0; i < b->k; i++)
+    {
+        b->keep[i] = 1;
+        if (depth <= 1)
+            continue;
+        engine_make(p, b->moves[i], &q);
+        int n = engine_moves(&q, list);
+        b->n_rep[i] = n;
+        b->child[i] = calloc(n ? n : 1, sizeof *b->child[i]);
+        for (int j = 0; j < n; j++)
+        {
+            position_t r;
+            engine_make(&q, list[j], &r);
+            bnode_t *c = book_build(&r, depth - 1);
+            b->child[i][j] = *c;
+            free(c);
+        }
+    }
+    return b;
+}
+
+static void book_free(bnode_t *b, int depth)
+{
+    if (depth > 1)
+        for (int i = 0; i < b->k; i++)
+            free(b->child[i]);
+}
+
+// A game of the cull: from the position after the move mi of node b,
+// to the end, by the engine at depth on both sides. If next, the side
+// of b's next move is one that the (culled) node after the reply keeps,
+// at random. Returns whether the side of b wins.
+typedef struct
+{
+    bnode_t *b;
+    int mi, depth, next;
+    uint32_t seed;
+} cull_job_t;
+
+static uint32_t mix32(uint32_t x)
+{
+    x ^= x >> 16;
+    x *= 0x85ebca6b;
+    x ^= x >> 13;
+    x *= 0xc2b2ae35;
+    x ^= x >> 16;
+    return x;
+}
+
+static int cull_game(const cull_job_t *job)
+{
+    const bnode_t *b = job->b;
+    int side = b->pos.side;
+    position_t q, after;
+    move_t list[ENGINE_MAX_MOVES], first[ENGINE_MAX_MOVES];
+    engine_search_t r;
+    engine_make(&b->pos, b->moves[job->mi], &after);
+    q = after;
+    int n_first = engine_moves(&after, first);
+    int ply = 0, reply = -1;
+    uint32_t rs = mix32(job->seed ^ 0x9e3779b9u);
+    engine_seed(job->seed);
+    while (1)
+    {
+        int n = engine_moves(&q, list);
+        if (!n)
+            return q.side != side;
+        move_t m;
+        if (ply == 1 && job->next)
+        {
+            const bnode_t *c = &b->child[job->mi][reply];
+            int kept[ENGINE_MAX_MOVES], nk = 0;
+            for (int i = 0; i < c->k; i++)
+                if (c->keep[i])
+                    kept[nk++] = i;
+            rs = mix32(rs + 1);
+            m = c->moves[kept[rs % (uint32_t) nk]];
+        }
+        else
+        {
+            engine_search(&q, job->depth, NULL, &r);
+            m = r.move;
+        }
+        if (ply == 0)
+            for (int j = 0; j < n_first; j++)
+                if (first[j] == m)
+                    reply = j;
+        engine_make(&q, m, &q);
+        ply++;
+    }
+}
+
+// Plays the games of jobs, n of them, in n_threads processes, and adds
+// each that the side of its node wins to its move's count.
+static void cull_run(cull_job_t *jobs, int n)
+{
+    int w = n_threads, fd[256];
+    pid_t pid[256];
+    fflush(stdout);
+    for (int i = 0; i < w; i++)
+    {
+        int pf[2];
+        if (pipe(pf) || (pid[i] = fork()) < 0)
+        {
+            perror("solve");
+            exit(1);
+        }
+        if (pid[i] == 0)
+        {
+            close(pf[0]);
+            FILE *out = fdopen(pf[1], "w");
+            for (int j = i; j < n; j += w)
+                fputc(cull_game(&jobs[j]), out);
+            fclose(out);
+            _exit(0);
+        }
+        close(pf[1]);
+        fd[i] = pf[0];
+    }
+    for (int i = 0; i < w; i++)
+    {
+        FILE *in = fdopen(fd[i], "r");
+        for (int j = i; j < n; j += w)
+        {
+            int c = fgetc(in);
+            if (c == EOF)
+            {
+                fprintf(stderr, "solve: a process of the cull failed\n");
+                exit(1);
+            }
+            jobs[j].b->won[jobs[j].mi] += c;
+        }
+        fclose(in);
+        waitpid(pid[i], NULL, 0);
+    }
+}
+
+static cull_job_t *jobs;
+static int n_jobs, cap_jobs;
+static uint32_t job_seed;
+
+static void add_jobs(bnode_t *b, int next)
+{
+    for (int i = 0; i < b->k; i++)
+        for (int d = 0; d < n_cull_depths; d++)
+            for (int g = 0; g < cull_games; g++)
+            {
+                if (n_jobs == cap_jobs)
+                {
+                    cap_jobs = cap_jobs ? 2 * cap_jobs : 4096;
+                    jobs = realloc(jobs, cap_jobs * sizeof *jobs);
+                    if (!jobs)
+                    {
+                        perror("solve");
+                        exit(1);
+                    }
+                }
+                jobs[n_jobs++] = (cull_job_t) {b, i, cull_depths[d], next, mix32(++job_seed)};
+            }
+}
+
+// Keeps the moves of b that win no fewer games than its best, less
+// cull_margin. Returns how many go.
+static int cull_node(bnode_t *b)
+{
+    int best = 0, gone = 0;
+    for (int i = 0; i < b->k; i++)
+        if (b->won[i] > best)
+            best = b->won[i];
+    for (int i = 0; i < b->k; i++)
+    {
+        b->keep[i] = b->won[i] >= best - cull_margin;
+        gone += !b->keep[i];
+    }
+    return gone;
+}
+
+// Culls the nodes tops, n of them, of depth 2: first the nodes of the
+// second level, by games from after their moves, then the tops, by
+// games where the side's next move is one of those that stay.
+static void cull(bnode_t **tops, int n, int *moves, int *gone)
+{
+    n_jobs = 0;
+    for (int t = 0; t < n; t++)
+        for (int i = 0; i < tops[t]->k; i++)
+            for (int j = 0; j < tops[t]->n_rep[i]; j++)
+                add_jobs(&tops[t]->child[i][j], 0);
+    cull_run(jobs, n_jobs);
+    for (int t = 0; t < n; t++)
+        for (int i = 0; i < tops[t]->k; i++)
+            for (int j = 0; j < tops[t]->n_rep[i]; j++)
+            {
+                *moves += tops[t]->child[i][j].k;
+                *gone += cull_node(&tops[t]->child[i][j]);
+            }
+    n_jobs = 0;
+    for (int t = 0; t < n; t++)
+        add_jobs(tops[t], 1);
+    cull_run(jobs, n_jobs);
+    for (int t = 0; t < n; t++)
+    {
+        *moves += tops[t]->k;
+        *gone += cull_node(tops[t]);
+    }
+}
+
+// The numbers of the book of a size, as they are written.
+static uint16_t *data;
+static int len, cap;
+
+static void put(int x)
+{
+    if (len == cap)
+    {
+        cap = cap ? 2 * cap : 1024;
+        data = realloc(data, cap * sizeof *data);
+        if (!data)
+        {
+            perror("solve");
+            exit(1);
+        }
+    }
+    data[len++] = (uint16_t) x;
+}
+
+// Writes node b to data: the number of its moves that stay, and they;
+// and, if depth is more than 1, for each of them, for each reply in the
+// order of engine_moves, the node after it.
+static void book_put(const bnode_t *b, int depth)
+{
+    int k = 0;
+    for (int i = 0; i < b->k; i++)
+        k += b->keep[i];
+    put(k);
+    for (int i = 0; i < b->k; i++)
+        if (b->keep[i])
+            put(b->moves[i]);
+    if (depth <= 1)
+        return;
+    for (int i = 0; i < b->k; i++)
+        if (b->keep[i])
+            for (int j = 0; j < b->n_rep[i]; j++)
+                book_put(&b->child[i][j], depth - 1);
+}
+
+// Writes the moves of b that stay as text to fp.
+static void book_moves_str(FILE *fp, const bnode_t *b)
 {
     char ms[8];
-    for (int i = 0; i < n; i++)
-        fprintf(fp, " %s", engine_move_str(list[i], ms));
+    for (int i = 0; i < b->k; i++)
+        if (b->keep[i])
+            fprintf(fp, " %s", engine_move_str(b->moves[i], ms));
 }
 
 // Writes the entry of the book of the start of the size of arg to fp:
 // the files, the ranks, 1 if the start is a WIN for White and else 0,
-// the number of the numbers that follow, and they: if a WIN, White's
-// first moves that win; if a LOSS, for each of White's first moves,
-// the number of Black's replies that win, and they.
+// the number of the numbers that follow, and they: if a WIN, the node
+// of the start; if a LOSS, for each of White's first moves, the node
+// of the position after it, of Black's replies.
 static void book_size(FILE *fp, const char *arg)
 {
     position_t p, q;
@@ -541,46 +842,64 @@ static void book_size(FILE *fp, const char *arg)
     table_clear();
     double t0 = now();
     int win = solve_threads(&p);
-    char ms[8], text[ENGINE_POSITION_STR_SIZE];
-    move_t list[ENGINE_MAX_MOVES], wins[ENGINE_MAX_MOVES];
-    uint16_t data[ENGINE_MAX_MOVES * (ENGINE_MAX_MOVES + 1)];
-    int len = 0;
+    char ms[8];
+    move_t list[ENGINE_MAX_MOVES];
+    bnode_t *tops[ENGINE_MAX_MOVES];
+    int n = 0;
+    book_nodes = 0;
+    if (win)
+        tops[n++] = book_build(&p, BOOK_DEPTH);
+    else
+    {
+        int m = engine_moves(&p, list);
+        for (int i = 0; i < m; i++)
+        {
+            engine_make(&p, list[i], &q);
+            tops[n++] = book_build(&q, BOOK_DEPTH);
+        }
+    }
+    double t1 = now();
+    int moves = 0, gone = 0;
+    if (cull_games)
+        cull(tops, n, &moves, &gone);
+    len = 0;
+    for (int t = 0; t < n; t++)
+        book_put(tops[t], BOOK_DEPTH);
     if (win)
     {
-        int k = winning_moves(&p, wins);
         fprintf(fp, "    // %dx%d: a WIN for White, by", files, ranks);
-        book_moves_str(fp, wins, k);
+        book_moves_str(fp, tops[0]);
         fprintf(fp, "\n");
-        for (int i = 0; i < k; i++)
-            data[len++] = wins[i];
     }
     else
     {
-        int n = engine_moves(&p, list);
         fprintf(fp, "    // %dx%d: a LOSS for White; Black's replies that win:\n", files, ranks);
-        for (int i = 0; i < n; i++)
+        for (int t = 0; t < n; t++)
         {
-            engine_make(&p, list[i], &q);
-            int k = winning_moves(&q, wins);
-            if (!k)
-            {
-                fprintf(stderr, "solve: %s: no reply wins\n", engine_position_str(&q, text));
-                exit(1);
-            }
-            fprintf(fp, "    //   %s:", engine_move_str(list[i], ms));
-            book_moves_str(fp, wins, k);
+            fprintf(fp, "    //   %s:", engine_move_str(list[t], ms));
+            book_moves_str(fp, tops[t]);
             fprintf(fp, "\n");
-            data[len++] = (uint16_t) k;
-            for (int j = 0; j < k; j++)
-                data[len++] = wins[j];
         }
     }
+    if (cull_games)
+        fprintf(fp, "    // %ld positions, %d numbers; the cull left out %d of %d moves\n", book_nodes, len, gone, moves);
+    else
+        fprintf(fp, "    // %ld positions, %d numbers\n", book_nodes, len);
     fprintf(fp, "    %d, %d, %d, %d,", files, ranks, win, len);
     for (int i = 0; i < len; i++)
         fprintf(fp, "%s %s%x,", i % 8 == 0 ? "\n   " : "", data[i] < 0x100 ? "" : "0x", data[i]);
     fprintf(fp, "\n");
-    printf("book %dx%d: %s, %.0f s\n", files, ranks, win ? "WIN" : "LOSS", now() - t0);
+    printf("book %dx%d: %s, %ld positions, %d numbers, solved in %.0f s", files, ranks, win ? "WIN" : "LOSS",
+           book_nodes, len, t1 - t0);
+    if (cull_games)
+        printf(", %d of %d moves culled in %.0f s", gone, moves, now() - t1);
+    printf("\n");
     fflush(stdout);
+    for (int t = 0; t < n; t++)
+    {
+        book_free(tops[t], BOOK_DEPTH);
+        free(tops[t]);
+    }
 }
 
 // Writes the book of the sizes, n of them, to file; argc and argv are
@@ -604,11 +923,16 @@ static int book(const char *file, int n, char **sizes, int argc, char **argv)
                 " *\n"
                 " * Each entry: the files, the ranks, 1 if the start is a WIN for\n"
                 " * White and 0 if a LOSS, the number of the numbers that follow, and\n"
-                " * they: if a WIN, all of White's first moves that win; if a LOSS,\n"
-                " * for each of White's first moves, in the order of engine_moves, the\n"
-                " * number of Black's replies that win, and they. A move is a move_t (engine.h): the square it is from in the\n"
-                " * low byte, and the square it is to in the high byte, a square\n"
-                " * rank * 16 + file. 0 ends the book.\n"
+                " * they: if a WIN, the node of the start; if a LOSS, for each of\n"
+                " * White's first moves, in the order of engine_moves, the node of\n"
+                " * the position after it. A node, of a position that is a WIN for\n"
+                " * its side to move, is the number of its moves that win, and they,\n"
+                " * and then, but not in a node of the second level, for each of\n"
+                " * them, for each reply, in the order of engine_moves, the node of\n"
+                " * the position after it. A move is a move_t (engine.h): the square\n"
+                " * it is from in the low byte, and the square it is to in the high\n"
+                " * byte, a square\n"
+" * rank * 16 + file. 0 ends the book.\n"
                 " *\n"
                 " * Do not edit.\n"
                 " ***************************************************************/\n"
@@ -725,7 +1049,11 @@ static void usage(void)
             "  --dump FILE    write every position that can come from the one argument, with\n"
             "                 its value, as a database\n"
             "  --book FILE    write the engine's opening book of the start of the sizes, as\n"
-            "                 src/engine/book.h\n");
+            "                 src/engine/book.h\n"
+            "  --cull-games N with --book: play N games from each move of the book at each\n"
+            "                 depth of --cull-depths (6,8), by the engine against itself, and\n"
+            "                 leave out the moves that win more than --cull-margin (2) fewer\n"
+            "                 than the best of their position (0: no cull)\n");
     exit(2);
 }
 
@@ -753,6 +1081,26 @@ int main(int argc, char **argv)
             dump_file = argv[++i];
         else if (i + 1 < argc && !strcmp(a, "--book"))
             book_file = argv[++i];
+        else if (i + 1 < argc && !strcmp(a, "--cull-games"))
+            cull_games = atoi(argv[++i]);
+        else if (i + 1 < argc && !strcmp(a, "--cull-margin"))
+            cull_margin = atoi(argv[++i]);
+        else if (i + 1 < argc && !strcmp(a, "--cull-depths"))
+        {
+            char *d = argv[++i];
+            n_cull_depths = 0;
+            while (*d && n_cull_depths < 8)
+            {
+                int x = (int) strtol(d, &d, 10);
+                if (x < 1 || x > ENGINE_MAX_DEPTH)
+                    usage();
+                cull_depths[n_cull_depths++] = x;
+                if (*d == ',')
+                    d++;
+                else if (*d)
+                    usage();
+            }
+        }
         else if (i + 1 < argc && !strcmp(a, "--order"))
         {
             const char *v = argv[++i];
@@ -769,6 +1117,7 @@ int main(int argc, char **argv)
     if (hash_mb < 1 || (i == argc && !check_file) || (dump_file && i != argc - 1))
         usage();
     table_init();
+    engine_set_book(0);
     if (book_file)
         return book(book_file, argc - i, argv + i, argc, argv);
     if (dump_file)

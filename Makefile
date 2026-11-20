@@ -51,9 +51,10 @@ VERSIONC = build/gen/version.c
 # checks of wasm's memory accesses, which the host build's asserts
 # stand in for. --byte-windows reaches the memory through the byte
 # windows of nice_cpu's SYSTEM.md §9 (niceemu and NiceMonMEGA65 from
-# V2.0 on).
+# V2.0 on). --memory: two pages of linear memory, as the opening book
+# (book.h) does not fit in one with the rest.
 NICEFLAGS = -O 2 -D NDEBUG --no-bounds-checks --trust-alignment --byte-windows \
-            --stack 8192 --symbols --keep
+            --stack 8192 --memory 131072 --symbols --keep
 # The MEGA65: the same, built for the monitor, which loads it at 0x8000.
 MONFLAGS = $(NICEFLAGS) --monitor
 
@@ -76,7 +77,7 @@ help:
 	@echo "                     (TRAIN_ARGS= options of tools/train.c), for experiments"
 	@echo "  make weights       learn the engine's weights into src/engine/eval_weights.h (5 minutes)"
 	@echo "  make book          the engine's opening book of the solved sizes into src/engine/book.h"
-	@echo "                     (BOOK_ARGS=, half an hour on 16 cores and 32 GB)"
+	@echo "                     (BOOK_ARGS=, an hour on 16 cores and 32 GB)"
 	@echo "  make calibrate     fit the probability of a win shown to the values of positions of games,"
 	@echo "                     which the solver finds (CALIBRATE_ARGS=, about 2 hours on 16 cores)"
 	@echo "  make solve         solve the start of boards on the host: who wins (SOLVE_ARGS= options"
@@ -205,9 +206,11 @@ solve: build/host/solve
 # The engine's opening book (src/engine/book.c), of the start of the
 # sizes the solver solves, into src/engine/book.h, which is in git
 # (by way of build/gen/book.h, so that it is whole or not there). 10x5
-# takes the most, half an hour on 16 cores.
+# takes the most, half an hour on 16 cores. --cull-games leaves out the
+# moves that win, but from which the engine at depths 6 and 8 wins
+# fewer games against itself than from the best.
 BOOK_SIZES ?= 4x4 5x4 6x4 7x4 8x4 9x4 10x4 11x4 12x4 4x5 5x5 6x5 7x5 8x5 9x5 10x5 4x6 5x6 6x6 7x6 8x6
-BOOK_ARGS ?= --threads 16 --hash 32768
+BOOK_ARGS ?= --threads 16 --hash 32768 --cull-games 6
 
 book: build/host/solve
 	@mkdir -p build/gen

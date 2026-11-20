@@ -19,7 +19,7 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make train       # learn N-tuple weights by TD self-play, and check them on 4x4 (about 1.5 minutes)
     make weights     # learn the engine's weights into src/engine/eval_weights.h (about 5 minutes)
     make solve       # solve the start of the boards solved in under 30 s each: who wins (about a minute)
-    make book        # the opening book of the solved sizes into src/engine/book.h (about half an hour on 16 cores and 32 GB)
+    make book        # the opening book of the solved sizes into src/engine/book.h (about an hour on 16 cores and 32 GB)
     make calibrate   # fit the probability of a win shown to solved positions of games (about 2 hours on 16 cores)
 
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
@@ -251,22 +251,44 @@ where the order of the search does not help.
 ## The opening book
 
 `src/engine/book.c` has the value of the start of each size that the
-solver solves, and all the moves that win: White's, or, if White
-loses, Black's replies to each move of White's. `tools/solve.c --book FILE
+solver solves, and the first two moves of the side that wins, all
+those that win: White's first move, and its second against each
+reply; or, if White loses, Black's reply to each move of White's,
+and its next move against each move of White's after it. The book is
+a tree of them, with no index: a probe walks it, making the moves,
+which takes at most some 100000 steps in niceemu (2 ms on
+the board), on 11x4. The NICE builds have two pages of linear memory
+for it (`--memory` of `NICEFLAGS`). `tools/solve.c --book FILE
 SIZE...` solves them and writes `book.h`; `make book` (`BOOK_SIZES`,
 `BOOK_ARGS`) writes it into `src/engine/book.h`, which is in git. A
 move wins if it ends the game, or if the solver's table, from the
 solve of the start, has its position as a LOSS, or else if the solver
-solves it as one. It takes 32 minutes on 16 cores, 23 of them for 10x5; a size solved
+solves it as one. It takes 55 minutes on 16 cores, 32 of them for 10x5; a size solved
 since goes into `BOOK_SIZES`.
+
+Not every move that wins is one the engine can go on with: past the
+book, its search may lose the win. The cull (`--cull-games N`, 6 in
+`BOOK_ARGS`) plays N games from each move of the book at each of the
+depths 6 and 8 (`--cull-depths`), by the engine against itself, at
+random by their seeds, and leaves out the moves whose side wins more
+than `--cull-margin` (2) games fewer than with the best move of its
+position. It culls the second level first, by games from after each
+move, and then the first, by games in which the side's second move is
+one that stays. Each position keeps at least one move, and every move
+that stays wins. The solver plays the games without the book
+(`engine_set_book`), in `--threads` processes. The engine's opponent in
+the games is itself, as in a match against V1.1, which has the same
+evaluation and search; against another, the moves that stay are not
+sure to be the best.
 
 The search gives the book's value, `ENGINE_BOOK_WIN` or its negative,
 only when it proves neither a Win nor a Loss itself, and then plays one
 of the book's moves, if a WIN, at random by the seed. The test `book` (`tests/book.input`, on the
 host, in niceemu, and on the board) searches at depth 1, which proves
 nothing, the start of each size and, where White loses, the position
-after each of White's first moves, and plays the book's move; and 9x6,
-which the book has not. That the moves win, the solver found.
+after each of White's first moves, and plays the book's move; some
+positions of the second move of the side that wins, of each size; and
+9x6, which the book has not. That the moves win, the solver found.
 
 ## The probability of a win
 

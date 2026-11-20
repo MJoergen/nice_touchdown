@@ -32,8 +32,8 @@ move d1d2
 info depth 1 score Win nodes 7 pv a4a3
 move a4a3
 move e1e2
-info depth 1 score Win nodes 7 pv a4a3
-move a4a3
+info depth 1 score Win nodes 7 pv d4d3
+move d4d3
 move f1f2
 info depth 1 score Win nodes 7 pv f4f3
 move f4f3
@@ -51,11 +51,11 @@ move c1c2
 info depth 1 score Win nodes 9 pv e4e3
 move e4e3
 move d1d2
-info depth 1 score Win nodes 9 pv a4a3
-move a4a3
-move e1e2
 info depth 1 score Win nodes 9 pv d4d3
 move d4d3
+move e1e2
+info depth 1 score Win nodes 9 pv e4e3
+move e4e3
 move f1f2
 info depth 1 score Win nodes 9 pv d4d3
 move d4d3
@@ -65,140 +65,416 @@ move g4g3
 move h1h2
 info depth 1 score Win nodes 9 pv g4g3
 move g4g3
-info depth 1 score Win nodes 10 pv e1e2
-move e1e2
-info depth 1 score Win nodes 11 pv b1b2
-move b1b2
-info depth 1 score Loss nodes 12 pv h1h2
-move h1h2
+info depth 1 score Win nodes 10 pv a1a2
 move a1a2
-info depth 1 score Win nodes 12 pv g4g3
-move g4g3
+info depth 1 score Win nodes 11 pv i1i2
+move i1i2
+info depth 1 score Loss nodes 12 pv d1d2
+move d1d2
+move a1a2
+info depth 1 score Win nodes 12 pv c4c3
+move c4c3
 move b1b2
-info depth 1 score Win nodes 12 pv g4g3
-move g4g3
+info depth 1 score Win nodes 12 pv c4c3
+move c4c3
 move c1c2
 info depth 1 score Win nodes 12 pv f4f3
 move f4f3
 move d1d2
-info depth 1 score Win nodes 12 pv j4j3
-move j4j3
+info depth 1 score Win nodes 12 pv a4a3
+move a4a3
 move e1e2
-info depth 1 score Win nodes 12 pv k4k3
-move k4k3
+info depth 1 score Win nodes 12 pv a4a3
+move a4a3
 move f1f2
-info depth 1 score Win nodes 12 pv k4k3
-move k4k3
-move g1g2
-info depth 1 score Win nodes 12 pv a4a3
-move a4a3
-move h1h2
-info depth 1 score Win nodes 12 pv g4g3
-move g4g3
-move i1i2
-info depth 1 score Win nodes 12 pv a4a3
-move a4a3
-move j1j2
 info depth 1 score Win nodes 12 pv f4f3
 move f4f3
+move g1g2
+info depth 1 score Win nodes 12 pv k4k3
+move k4k3
+move h1h2
+info depth 1 score Win nodes 12 pv k4k3
+move k4k3
+move i1i2
+info depth 1 score Win nodes 12 pv g4g3
+move g4g3
+move j1j2
+info depth 1 score Win nodes 12 pv a4a3
+move a4a3
 move k1k2
-info depth 1 score Win nodes 12 pv e4e3
-move e4e3
-info depth 1 score Win nodes 13 pv e1e2
-move e1e2
+info depth 1 score Win nodes 12 pv a4a3
+move a4a3
+info depth 1 score Win nodes 13 pv b1b2
+move b1b2
 info depth 1 score Loss nodes 5 pv a1a2
 move a1a2
 move a1a2
-info depth 1 score Win nodes 5 pv c5c4
-move c5c4
+info depth 1 score Win nodes 5 pv b5b4
+move b5b4
 move b1b2
-info depth 1 score Win nodes 5 pv c5c4
-move c5c4
+info depth 1 score Win nodes 5 pv b5b4
+move b5b4
 move c1c2
 info depth 1 score Win nodes 5 pv c5c4
 move c5c4
 move d1d2
 info depth 1 score Win nodes 5 pv b5b4
 move b5b4
-info depth 1 score Win nodes 6 pv a1a2
-move a1a2
+info depth 1 score Win nodes 6 pv e1e2
+move e1e2
 info depth 1 score Loss nodes 7 pv d1d2
 move d1d2
 move a1a2
-info depth 1 score Win nodes 7 pv c5c4
-move c5c4
-move b1b2
 info depth 1 score Win nodes 7 pv d5d4
 move d5d4
+move b1b2
+info depth 1 score Win nodes 7 pv c5c4
+move c5c4
 move c1c2
 info depth 1 score Win nodes 7 pv c5c4
 move c5c4
 move d1d2
-info depth 1 score Win nodes 7 pv b5b4
-move b5b4
+info depth 1 score Win nodes 7 pv c5c4
+move c5c4
 move e1e2
-info depth 1 score Win nodes 7 pv b5b4
-move b5b4
+info depth 1 score Win nodes 7 pv c5c4
+move c5c4
 move f1f2
 info depth 1 score Win nodes 7 pv d5d4
 move d5d4
-info depth 1 score Win nodes 8 pv b1b2
-move b1b2
-info depth 1 score Win nodes 9 pv f1f2
+info depth 1 score Win nodes 8 pv f1f2
 move f1f2
+info depth 1 score Win nodes 9 pv b1b2
+move b1b2
 info depth 1 score Win nodes 10 pv c1c2
 move c1c2
-info depth 1 score Win nodes 11 pv i1i2
-move i1i2
-info depth 1 score Win nodes 5 pv d1d2
-move d1d2
-info depth 1 score Win nodes 6 pv e1e2
-move e1e2
-info depth 1 score Loss nodes 7 pv c1c2
+info depth 1 score Win nodes 11 pv c1c2
 move c1c2
-move a1a2
-info depth 1 score Win nodes 7 pv b6b5
-move b6b5
+info depth 1 score Win nodes 5 pv b1b2
 move b1b2
-info depth 1 score Win nodes 7 pv f6f5
-move f6f5
-move c1c2
+info depth 1 score Win nodes 6 pv d1d2
+move d1d2
+info depth 1 score Loss nodes 7 pv d1d2
+move d1d2
+move a1a2
+info depth 1 score Win nodes 7 pv c6c5
+move c6c5
+move b1b2
 info depth 1 score Win nodes 7 pv a6a5
 move a6a5
+move c1c2
+info depth 1 score Win nodes 7 pv c6c5
+move c6c5
 move d1d2
-info depth 1 score Win nodes 7 pv d6d5
-move d6d5
+info depth 1 score Win nodes 7 pv f6f5
+move f6f5
 move e1e2
 info depth 1 score Win nodes 7 pv d6d5
 move d6d5
 move f1f2
-info depth 1 score Win nodes 7 pv d6d5
-move d6d5
+info depth 1 score Win nodes 7 pv b6b5
+move b6b5
 info depth 1 score Loss nodes 8 pv e1e2
 move e1e2
 move a1a2
 info depth 1 score Win nodes 8 pv d6d5
 move d6d5
 move b1b2
-info depth 1 score Win nodes 8 pv d6d5
-move d6d5
+info depth 1 score Win nodes 8 pv c6c5
+move c6c5
 move c1c2
 info depth 1 score Win nodes 8 pv c6c5
 move c6c5
 move d1d2
-info depth 1 score Win nodes 8 pv d6d5
-move d6d5
+info depth 1 score Win nodes 8 pv b6b5
+move b6b5
 move e1e2
 info depth 1 score Win nodes 8 pv c6c5
 move c6c5
 move f1f2
-info depth 1 score Win nodes 8 pv b6b5
-move b6b5
+info depth 1 score Win nodes 8 pv g6g5
+move g6g5
 move g1g2
-info depth 1 score Win nodes 8 pv d6d5
-move d6d5
+info depth 1 score Win nodes 8 pv e6e5
+move e6e5
+info depth 1 score Win nodes 9 pv f1f2
+move f1f2
+move a1a2
+move a4a3
+info depth 1 score Win nodes 4 pv b1b2
+move b1b2
+move a1a2
+move c4c3
+info depth 1 score Win nodes 5 pv b1b2
+move b1b2
+move a1a2
+move d4d3
+info depth 1 score Win nodes 5 pv b1b2
+move b1b2
+move a1a2
+move e4e3
+move b1b2
+info depth 1 score Win nodes 6 pv d4d3
+move d4d3
+move a1a2
+move e4e3
+move d1d2
+info depth 1 score Win nodes 7 pv e3e2
+move e3e2
+move a1a2
+move e4e3
+move a2a3
+info depth 1 score Win nodes 6 pv b4a3
+move b4a3
+move a1a2
+move a4a3
+move b1b2
+info depth 1 score Win nodes 7 pv f4f3
+move f4f3
+move a1a2
+move a4a3
+move d1d2
+info depth 1 score Win nodes 6 pv e4e3
+move e4e3
+move a1a2
+move a4a3
+move f1f2
+info depth 1 score Win nodes 6 pv d4d3
+move d4d3
+move f1f2
+move a4a3
+info depth 1 score Win nodes 8 pv g1g2
+move g1g2
+move f1f2
+move d4d3
+info depth 1 score Win nodes 8 pv g1g2
+move g1g2
+move f1f2
+move g4g3
+info depth 1 score Win nodes 9 pv e1e2
+move e1e2
+move a1a2
+move b4b3
+move a2b3
+info depth 1 score Win nodes 10 pv a4b3
+move a4b3
+move a1a2
+move b4b3
+move e1e2
+info depth 1 score Win nodes 10 pv a4a3
+move a4a3
+move a1a2
+move b4b3
+move a2a3
+info depth 1 score Win nodes 8 pv c4c3
+move c4c3
+move a1a2
+move a4a3
+info depth 1 score Win nodes 9 pv d1d2
+move d1d2
+move a1a2
+move e4e3
+info depth 1 score Win nodes 10 pv i1i2
+move i1i2
+move a1a2
+move i4i3
+info depth 1 score Win nodes 10 pv h1h2
+move h1h2
+move i1i2
+move a4a3
+info depth 1 score Win nodes 11 pv c1c2
+move c1c2
+move i1i2
+move f4f3
+info depth 1 score Win nodes 11 pv a1a2
+move a1a2
+move i1i2
+move j4j3
+info depth 1 score Win nodes 12 pv h1h2
+move h1h2
+move a1a2
+move c4c3
+move b1b2
+info depth 1 score Win nodes 13 pv a4a3
+move a4a3
+move a1a2
+move c4c3
+move g1g2
+info depth 1 score Win nodes 12 pv b4b3
+move b4b3
+move a1a2
+move c4c3
+move a2a3
+info depth 1 score Win nodes 12 pv b4a3
+move b4a3
+move b1b2
+move a4a3
+info depth 1 score Win nodes 14 pv l1l2
+move l1l2
+move b1b2
+move g4g3
+info depth 1 score Win nodes 13 pv a1a2
+move a1a2
+move b1b2
+move l4l3
+info depth 1 score Win nodes 13 pv j1j2
+move j1j2
+move a1a2
+move b5b4
+move b1b2
+info depth 1 score Win nodes 5 pv c5c4
+move c5c4
+move a1a2
+move b5b4
+move d1d2
+info depth 1 score Win nodes 5 pv a5a4
+move a5a4
+move a1a2
+move b5b4
+move a2a3
+info depth 1 score Win nodes 6 pv b4a3
+move b4a3
+move b1b2
+move a5a4
+info depth 1 score Win nodes 6 pv d1d2
+move d1d2
+move b1b2
+move c5c4
+info depth 1 score Win nodes 6 pv c1c2
+move c1c2
+move b1b2
+move e5e4
+info depth 1 score Win nodes 6 pv d1d2
+move d1d2
+move a1a2
+move d5d4
+move b1b2
+info depth 1 score Win nodes 7 pv e5e4
+move e5e4
+move a1a2
+move d5d4
+move e1e2
+info depth 1 score Win nodes 7 pv c5c4
+move c5c4
+move a1a2
+move d5d4
+move a2a3
+info depth 1 score Win nodes 7 pv e5e4
+move e5e4
+move d1d2
+move a5a4
+info depth 1 score Win nodes 8 pv e1e2
+move e1e2
+move d1d2
+move d5d4
+info depth 1 score Win nodes 8 pv c1c2
+move c1c2
+move d1d2
+move g5g4
+info depth 1 score Win nodes 8 pv c1c2
+move c1c2
+move b1b2
+move a5a4
 info depth 1 score Win nodes 9 pv c1c2
 move c1c2
+move b1b2
+move e5e4
+info depth 1 score Win nodes 9 pv d1d2
+move d1d2
+move b1b2
+move h5h4
+info depth 1 score Win nodes 9 pv a1a2
+move a1a2
+move c1c2
+move a5a4
+info depth 1 score Win nodes 10 pv g1g2
+move g1g2
+move c1c2
+move e5e4
+info depth 1 score Win nodes 10 pv b1b2
+move b1b2
+move c1c2
+move i5i4
+info depth 1 score Win nodes 10 pv b1b2
+move b1b2
+move c1c2
+move a5a4
+info depth 1 score Win nodes 11 pv j1j2
+move j1j2
+move c1c2
+move f5f4
+info depth 1 score Win nodes 11 pv d1d2
+move d1d2
+move c1c2
+move j5j4
+info depth 1 score Win nodes 11 pv b1b2
+move b1b2
+move b1b2
+move a6a5
+info depth 1 score Win nodes 5 pv a1a2
+move a1a2
+move b1b2
+move c6c5
+info depth 1 score Win nodes 5 pv c1c2
+move c1c2
+move b1b2
+move d6d5
+info depth 1 score Win nodes 5 pv a1a2
+move a1a2
+move a1a2
+move a6a5
+info depth 1 score Win nodes 6 pv e1e2
+move e1e2
+move a1a2
+move c6c5
+info depth 1 score Win nodes 6 pv e1e2
+move e1e2
+move a1a2
+move e6e5
+info depth 1 score Win nodes 6 pv e1e2
+move e1e2
+move a1a2
+move a6a5
+move b1b2
+info depth 1 score Win nodes 7 pv d6d5
+move d6d5
+move a1a2
+move a6a5
+move e1e2
+info depth 1 score Win nodes 7 pv c6c5
+move c6c5
+move a1a2
+move a6a5
+move a2a3
+info depth 1 score Win nodes 7 pv d6d5
+move d6d5
+move a1a2
+move a6a5
+move b1b2
+info depth 1 score Win nodes 8 pv g6g5
+move g6g5
+move a1a2
+move a6a5
+move e1e2
+info depth 1 score Win nodes 8 pv b6b5
+move b6b5
+move a1a2
+move a6a5
+move a2a3
+info depth 1 score Win nodes 8 pv b6b5
+move b6b5
+move d1d2
+move a6a5
+info depth 1 score Win nodes 9 pv e1e2
+move e1e2
+move d1d2
+move e6e5
+info depth 1 score Win nodes 9 pv b1b2
+move b1b2
+move d1d2
+move h6h5
+info depth 1 score Win nodes 9 pv h1h2
+move h1h2
 info depth 1 score 68% nodes 10 pv c1c2
 move c1c2
 exit 0

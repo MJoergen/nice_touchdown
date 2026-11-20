@@ -42,6 +42,12 @@ static int (*stop_fn)(void);
 static int stopped;
 
 static uint32_t rnd_state = 1;
+static int book_on = 1;
+
+void engine_set_book(int on)
+{
+    book_on = on != 0;
+}
 
 // Murmur3's finalizer: every bit of x stirs every bit of the result,
 // so that seeds such as 1, 2, 3 give unrelated sequences.
@@ -207,7 +213,7 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
     // its moves that win, at random.
     const uint16_t *wins;
     int v, n_wins;
-    if (!ENGINE_PROVED(best) && (v = book_probe(p, &wins, &n_wins)) >= 0)
+    if (book_on && !ENGINE_PROVED(best) && (v = book_probe(p, &wins, &n_wins)) >= 0)
     {
         r->score = v ? ENGINE_BOOK_WIN : -ENGINE_BOOK_WIN;
         if (v)

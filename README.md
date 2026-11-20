@@ -205,13 +205,19 @@ counts plies, or as the probability of a win, such as `62%`; or
 book's.
 
 The opening book has the value of the start of each size that is
-solved (Solved boards, below): if White wins, all the moves that win;
-if White loses, for each move of White's, all of Black's replies that
-win. There the engine shows `Win` or `Loss` without the plies, which
-the book does not know, and plays one of the book's moves at random,
-unless its search proves a Win or a Loss itself. After the book's first move of each
-side, the search goes on alone, and does not know the way to the win.
-The book is 21 sizes in 385 numbers of 16 bits, which `make book` writes into
+solved (Solved boards, below), and the first two moves of the side
+that wins: if White wins, all of White's first moves that win, and,
+after each of them and each reply of Black's, all of White's second
+moves that win; if White loses, for each move of White's, all of
+Black's replies that win, and, after each of them and each move of
+White's, all of Black's next moves that win. There the engine shows
+`Win` or `Loss` without the plies, which the book does not know, and
+plays one of the book's moves at random, unless its search proves a
+Win or a Loss itself. After the book's second move of the side that
+wins, the search goes on alone, and does not know the way to the win;
+so the book leaves out the moves that win, but from which the engine
+wins fewer of its games against itself than from the best.
+The book is 21 sizes in 3813 numbers of 16 bits, which `make book` writes into
 `src/engine/book.h` by the solver.
 
 The probability is calibrated: of the positions it shows as 70 to

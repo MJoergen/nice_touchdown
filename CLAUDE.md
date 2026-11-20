@@ -51,7 +51,7 @@ Makefile, the tests, the platform layer, and the front ends.
     make train          # tools/train.c: N-tuple weights by TD self-play, checked on 4x4
     make weights        # the engine's weights, src/engine/eval_weights.h, by make train's way
     make solve          # tools/solve.c: who wins the start of the boards solved in under 30 s
-    make book           # src/engine/book.h, the opening book of the solved sizes, by tools/solve.c (half an hour)
+    make book           # src/engine/book.h, the opening book of the solved sizes, by tools/solve.c (an hour)
     make calibrate      # the probability of a win shown, fitted to solved positions (hours)
     make dist           # the archive of a release in build/dist/ (VERSION=V1.0)
 
