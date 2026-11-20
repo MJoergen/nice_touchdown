@@ -56,8 +56,8 @@ The limits come from the screen and the engine:
 
 A proposed screen of the windowed front end, 8x6, after White's move
 `c3c4` and Black's `b5b4`. It is a mockup, drawn by `tools/mockup.py`,
-not a dump of the program, in nice_chess's font (Spleen 16x32, from
-nice_cpu's emulator) and colors:
+not a dump of the program, in nice_chess's font (Spleen 16x32, from the
+emulator of [nice_cpu](https://github.com/MJoergen/nice_cpu)) and colors:
 
 ![A proposed screen: an 8x6 board on the left, the game on the right](doc/mockup.png)
 
@@ -325,8 +325,8 @@ As in nice_chess: `make deps all` fetches nice_cpu and niceemu into
 the host and in niceemu. CONTRIBUTING.md has the details.
 
 `tools/mockup.py` draws the mockups above. It needs Pillow and the
-font of nice_cpu's emulator, by default from a nice_chess checkout
-next to this one:
+font of [nice_cpu](https://github.com/MJoergen/nice_cpu)'s emulator,
+by default from `deps/` (`make deps`):
 
     tools/mockup.py doc/mockup.png
     tools/mockup.py --cols 12 doc/mockup_12x6.png

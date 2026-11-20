@@ -22,6 +22,8 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make book        # the opening book of the solved sizes into src/engine/book.h (about an hour on 16 cores and 32 GB)
     make calibrate   # fit the probability of a win shown to solved positions of games (about 2 hours on 16 cores)
 
+`make deps` fetches nice_cpu and niceemu from
+[nice_cpu](https://github.com/MJoergen/nice_cpu), at the tag the Makefile pins.
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
 and `NICEEMU=PATH` to make.
 
@@ -357,7 +359,9 @@ made again with a trainer built against a stand-in `engine_eval`.
 The tests of the windowed front end (`tests/screen*.keys`) type keys
 into it in niceemu, and compare the moves it logs and the screen at
 the end, with its colors, for the build for niceemu and for the MEGA65.
-`tools/screenshot.py` of nice_chess draws such a screen as a PNG, from
+`tools/screenshot.py` of
+[nice_chess](https://github.com/MJoergen/nice_chess) draws such a
+screen as a PNG, from
 niceemu's `-d 0xFFFF0000:2000 -d 0xFFFFFF86:1 -d 0xFFFE0000:16384`.
 
 The tests that search set `seed 1`, so that the engine's choice among

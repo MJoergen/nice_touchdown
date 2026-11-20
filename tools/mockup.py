@@ -150,7 +150,7 @@ class Screen:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Draws a proposed screen as a PNG.")
     ap.add_argument("png")
-    ap.add_argument("--font", default="../nice_chess/deps/nice_cpu-V2.0/emulator/src/font.zig")
+    ap.add_argument("--font", default="deps/nice_cpu-V2.0/emulator/src/font.zig")
     ap.add_argument("--cols", type=int, default=8)
     ap.add_argument("--rows", type=int, default=6)
     args = ap.parse_args()
