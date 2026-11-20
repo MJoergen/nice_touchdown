@@ -9,6 +9,19 @@ A release is named `Vmajor.minor`, and its files are
 names the nice_cpu tag the release is built with, and the NiceMonMEGA65
 release it was checked on.
 
+## V1.2 (not yet released)
+
+**The engine**
+
+- The probability of a win on the screen is calibrated: of the
+  positions it shows as 70 to 80%, about three in four are a win,
+  where V1.1's were nearly all a win, and a score of 0 shows 61% for
+  the side to move, as it has the move, where V1.1 showed 50%. The
+  table is fitted to 13000 positions of games on 6x6 to 12x6 whose
+  value the solver of the host finds; on positions of other games it
+  is within 4 points in each tenth. The moves the engine plays are
+  the same.
+
 ## V1.1 (2026-11-19)
 
 An evaluation, learned by self-play, which makes the engine much
