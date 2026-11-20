@@ -16,7 +16,7 @@
     `tools/train.c` learns by self-play (`make weights`).
     `eval_weights.h` is written by it; do not edit it.
   - `book.c`: the opening book: the value of the start of the sizes
-    that the solver solves, and a move that wins, in `book.h`, which
+    that the solver solves, and all the moves that win, in `book.h`, which
     `tools/solve.c --book` writes (`make book`). Do not edit `book.h`.
   - `search.c`: negamax with alpha-beta pruning to a fixed depth. Its
     scores are Win in N, Loss in N, and the evaluation, or Even without

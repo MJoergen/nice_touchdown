@@ -23,9 +23,9 @@ release it was checked on.
   the same.
 - An opening book of the start of the 21 sizes that are solved, from
   4x4 to 12x4, 10x5 and 8x6: there the score is `Win` or `Loss`,
-  exact, and the engine plays a move that wins: White's first move
-  where White wins, and Black's reply to each where White loses. The
-  default, 8x6, is a win for White.
+  exact, and the engine plays one of the moves that win, at random:
+  White's first moves where White wins, and Black's replies to each
+  where White loses. The default, 8x6, is a win for White.
 
 ## V1.1 (2026-11-19)
 

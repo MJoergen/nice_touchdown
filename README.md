@@ -205,13 +205,13 @@ counts plies, or as the probability of a win, such as `62%`; or
 book's.
 
 The opening book has the value of the start of each size that is
-solved (Solved boards, below): if White wins, a move that wins; if
-White loses, for each move of White's, a move of Black's that wins.
-There the engine shows `Win` or `Loss` without the plies, which the
-book does not know, and plays the book's move, unless its search
-proves a Win or a Loss itself. After the book's first move of each
+solved (Solved boards, below): if White wins, all the moves that win;
+if White loses, for each move of White's, all of Black's replies that
+win. There the engine shows `Win` or `Loss` without the plies, which
+the book does not know, and plays one of the book's moves at random,
+unless its search proves a Win or a Loss itself. After the book's first move of each
 side, the search goes on alone, and does not know the way to the win.
-The book is 21 sizes in 151 numbers of 16 bits, which `make book` writes into
+The book is 21 sizes in 385 numbers of 16 bits, which `make book` writes into
 `src/engine/book.h` by the solver.
 
 The probability is calibrated: of the positions it shows as 70 to

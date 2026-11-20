@@ -9,7 +9,8 @@
  * and a Win or Loss found is exact.
  *
  * If it proves neither a Win nor a Loss, the opening book (book.c) may
- * know the value of the root, and a move that wins.
+ * know the value of the root, and the moves that win, of which it
+ * plays one at random.
  *
  * The root searches its first move with a full window, and each other
  * with alpha at the best score so far, so that it learns only of a
@@ -202,15 +203,16 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
     r->score = best;
     r->nodes = nodes;
 
-    // The book, if the search proves neither a Win nor a Loss.
-    move_t m;
-    int v;
-    if (!ENGINE_PROVED(best) && (v = book_probe(p, &m)) >= 0)
+    // The book, if the search proves neither a Win nor a Loss: one of
+    // its moves that win, at random.
+    const uint16_t *wins;
+    int v, n_wins;
+    if (!ENGINE_PROVED(best) && (v = book_probe(p, &wins, &n_wins)) >= 0)
     {
         r->score = v ? ENGINE_BOOK_WIN : -ENGINE_BOOK_WIN;
         if (v)
         {
-            r->move = r->pv[0] = m;
+            r->move = r->pv[0] = wins[n_wins > 1 ? rnd((uint32_t) n_wins) : 0];
             r->pv_len = 1;
         }
     }

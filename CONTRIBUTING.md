@@ -251,18 +251,18 @@ where the order of the search does not help.
 ## The opening book
 
 `src/engine/book.c` has the value of the start of each size that the
-solver solves, and a move that wins: White's, or, if White loses,
-Black's reply to each move of White's. `tools/solve.c --book FILE
+solver solves, and all the moves that win: White's, or, if White
+loses, Black's replies to each move of White's. `tools/solve.c --book FILE
 SIZE...` solves them and writes `book.h`; `make book` (`BOOK_SIZES`,
-`BOOK_ARGS`) writes it into `src/engine/book.h`, which is in git. Each
-move that wins is the first in the order of `engine_moves` whose
-position the solver's table has as a LOSS, or else that it solves as
-one. It takes 26 minutes on 16 cores, 23 of them for 10x5; a size solved
+`BOOK_ARGS`) writes it into `src/engine/book.h`, which is in git. A
+move wins if it ends the game, or if the solver's table, from the
+solve of the start, has its position as a LOSS, or else if the solver
+solves it as one. It takes 32 minutes on 16 cores, 23 of them for 10x5; a size solved
 since goes into `BOOK_SIZES`.
 
 The search gives the book's value, `ENGINE_BOOK_WIN` or its negative,
-only when it proves neither a Win nor a Loss itself, and then plays the
-book's move, if a WIN. The test `book` (`tests/book.input`, on the
+only when it proves neither a Win nor a Loss itself, and then plays one
+of the book's moves, if a WIN, at random by the seed. The test `book` (`tests/book.input`, on the
 host, in niceemu, and on the board) searches at depth 1, which proves
 nothing, the start of each size and, where White loses, the position
 after each of White's first moves, and plays the book's move; and 9x6,
