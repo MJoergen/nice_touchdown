@@ -1,0 +1,205 @@
+seed 1
+new 4x4
+go depth 1
+new 5x4
+go depth 1
+new 5x4
+move a1a2
+go depth 1
+new 5x4
+move b1b2
+go depth 1
+new 5x4
+move c1c2
+go depth 1
+new 5x4
+move d1d2
+go depth 1
+new 5x4
+move e1e2
+go depth 1
+new 6x4
+go depth 1
+new 6x4
+move a1a2
+go depth 1
+new 6x4
+move b1b2
+go depth 1
+new 6x4
+move c1c2
+go depth 1
+new 6x4
+move d1d2
+go depth 1
+new 6x4
+move e1e2
+go depth 1
+new 6x4
+move f1f2
+go depth 1
+new 7x4
+go depth 1
+new 8x4
+go depth 1
+new 8x4
+move a1a2
+go depth 1
+new 8x4
+move b1b2
+go depth 1
+new 8x4
+move c1c2
+go depth 1
+new 8x4
+move d1d2
+go depth 1
+new 8x4
+move e1e2
+go depth 1
+new 8x4
+move f1f2
+go depth 1
+new 8x4
+move g1g2
+go depth 1
+new 8x4
+move h1h2
+go depth 1
+new 9x4
+go depth 1
+new 10x4
+go depth 1
+new 11x4
+go depth 1
+new 11x4
+move a1a2
+go depth 1
+new 11x4
+move b1b2
+go depth 1
+new 11x4
+move c1c2
+go depth 1
+new 11x4
+move d1d2
+go depth 1
+new 11x4
+move e1e2
+go depth 1
+new 11x4
+move f1f2
+go depth 1
+new 11x4
+move g1g2
+go depth 1
+new 11x4
+move h1h2
+go depth 1
+new 11x4
+move i1i2
+go depth 1
+new 11x4
+move j1j2
+go depth 1
+new 11x4
+move k1k2
+go depth 1
+new 12x4
+go depth 1
+new 4x5
+go depth 1
+new 4x5
+move a1a2
+go depth 1
+new 4x5
+move b1b2
+go depth 1
+new 4x5
+move c1c2
+go depth 1
+new 4x5
+move d1d2
+go depth 1
+new 5x5
+go depth 1
+new 6x5
+go depth 1
+new 6x5
+move a1a2
+go depth 1
+new 6x5
+move b1b2
+go depth 1
+new 6x5
+move c1c2
+go depth 1
+new 6x5
+move d1d2
+go depth 1
+new 6x5
+move e1e2
+go depth 1
+new 6x5
+move f1f2
+go depth 1
+new 7x5
+go depth 1
+new 8x5
+go depth 1
+new 9x5
+go depth 1
+new 10x5
+go depth 1
+new 4x6
+go depth 1
+new 5x6
+go depth 1
+new 6x6
+go depth 1
+new 6x6
+move a1a2
+go depth 1
+new 6x6
+move b1b2
+go depth 1
+new 6x6
+move c1c2
+go depth 1
+new 6x6
+move d1d2
+go depth 1
+new 6x6
+move e1e2
+go depth 1
+new 6x6
+move f1f2
+go depth 1
+new 7x6
+go depth 1
+new 7x6
+move a1a2
+go depth 1
+new 7x6
+move b1b2
+go depth 1
+new 7x6
+move c1c2
+go depth 1
+new 7x6
+move d1d2
+go depth 1
+new 7x6
+move e1e2
+go depth 1
+new 7x6
+move f1f2
+go depth 1
+new 7x6
+move g1g2
+go depth 1
+new 8x6
+go depth 1
+new 9x6
+go depth 1
+quit

@@ -16,4 +16,8 @@ extern uint32_t board_valid[3];
 extern uint32_t board_first[3];
 extern uint32_t board_last[3];
 
+// book.c: the book's value of p, from the side to move: 1 a WIN, with
+// a move that wins in *move; 0 a LOSS; -1 if the book has not p.
+int book_probe(const position_t *p, move_t *move);
+
 #endif // INTERNAL_H

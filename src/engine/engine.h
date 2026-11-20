@@ -190,6 +190,12 @@ int engine_eval_on(void);
 #define ENGINE_WIN 10000
 #define ENGINE_PROVED(score) ((score) > ENGINE_EVAL_MAX || (score) < -ENGINE_EVAL_MAX)
 
+// A Win, or the negative of it a Loss, that the opening book has
+// (book.c), in plies it does not know: at the start of a size that the
+// solver of the host solves, and after White's first move there when
+// White loses. The search gives it only when it proves neither itself.
+#define ENGINE_BOOK_WIN (ENGINE_WIN - 1000)
+
 typedef struct
 {
     move_t move;                   // The move to play; 0 if the game is over
@@ -211,10 +217,10 @@ void engine_seed(uint32_t seed);
 // moves searched, or the first move.
 void engine_search(const position_t *p, int depth, int (*stop)(void), engine_search_t *r);
 
-// Writes a score as "Win in N" or "Loss in N" (N in plies), or, if it
-// is not proved, as the probability of a win of the evaluation, such
-// as "62%", or "Even" without the evaluation, to s, of at least 16
-// bytes, and returns s.
+// Writes a score as "Win in N" or "Loss in N" (N in plies), "Win" or
+// "Loss" (the book's), or, if it is not proved, as the probability of
+// a win of the evaluation, such as "62%", or "Even" without the
+// evaluation, to s, of at least 16 bytes, and returns s.
 char *engine_score_str(int score, char *s);
 
 /***************************************************************

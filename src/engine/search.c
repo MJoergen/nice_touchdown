@@ -8,6 +8,9 @@
  * move takes a pawn forward, a game has no repetitions and no draws,
  * and a Win or Loss found is exact.
  *
+ * If it proves neither a Win nor a Loss, the opening book (book.c) may
+ * know the value of the root, and a move that wins.
+ *
  * The root searches its first move with a full window, and each other
  * with alpha at the best score so far, so that it learns only of a
  * better one: a faster win, or a slower loss. But while the best is
@@ -198,6 +201,19 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
     }
     r->score = best;
     r->nodes = nodes;
+
+    // The book, if the search proves neither a Win nor a Loss.
+    move_t m;
+    int v;
+    if (!ENGINE_PROVED(best) && (v = book_probe(p, &m)) >= 0)
+    {
+        r->score = v ? ENGINE_BOOK_WIN : -ENGINE_BOOK_WIN;
+        if (v)
+        {
+            r->move = r->pv[0] = m;
+            r->pv_len = 1;
+        }
+    }
 }
 
 // The probability that the side to move wins, in percent, of a score
@@ -240,7 +256,13 @@ char *engine_score_str(int score, char *s)
 {
     char *c = s;
     const char *word;
-    if (ENGINE_PROVED(score))
+    if (score == ENGINE_BOOK_WIN || score == -ENGINE_BOOK_WIN)
+    {
+        word = score > 0 ? "Win" : "Loss";
+        while (*word)
+            *c++ = *word++;
+    }
+    else if (ENGINE_PROVED(score))
     {
         word = score > 0 ? "Win in " : "Loss in ";
         while (*word)

@@ -21,6 +21,11 @@ release it was checked on.
   value the solver of the host finds; on positions of other games it
   is within 4 points in each tenth. The moves the engine plays are
   the same.
+- An opening book of the start of the 21 sizes that are solved, from
+  4x4 to 12x4, 10x5 and 8x6: there the score is `Win` or `Loss`,
+  exact, and the engine plays a move that wins: White's first move
+  where White wins, and Black's reply to each where White loses. The
+  default, 8x6, is a win for White.
 
 ## V1.1 (2026-11-19)
 

@@ -51,6 +51,7 @@ Makefile, the tests, the platform layer, and the front ends.
     make train          # tools/train.c: N-tuple weights by TD self-play, checked on 4x4
     make weights        # the engine's weights, src/engine/eval_weights.h, by make train's way
     make solve          # tools/solve.c: who wins the start of the boards solved in under 30 s
+    make book           # src/engine/book.h, the opening book of the solved sizes, by tools/solve.c (half an hour)
     make calibrate      # the probability of a win shown, fitted to solved positions (hours)
     make dist           # the archive of a release in build/dist/ (VERSION=V1.0)
 
@@ -65,6 +66,7 @@ only when the user asks, or when a change is for the board.
   so an access out of bounds is caught only on the host.
 - `src/engine/eval_weights.h` is written by `make weights`; do not
   edit it. The test `evalcheck` checks `eval.c` against the trainer.
+- `src/engine/book.h` is written by `make book`; do not edit it.
 - Speed is measured in niceemu steps, which are deterministic. Report
   figures as steps, and as seconds on the board at about 54 million
   steps a second.

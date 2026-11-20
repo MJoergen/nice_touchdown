@@ -67,6 +67,7 @@ static int use_races = 1;
 static long hash_mb = 1024;
 static const char *check_file;
 static const char *dump_file;
+static const char *book_file;
 
 static int files, ranks;
 static int n_threads = 1;
@@ -494,6 +495,122 @@ static void solve_arg(const char *arg)
     }
 }
 
+/***************************************************************
+ * --book: the engine's opening book
+ ***************************************************************/
+
+// A move of p that wins: the first, in the order of engine_moves,
+// whose position the table has as a LOSS for the opponent, or that
+// ends the game; else the first that the search solves as one. 0 if
+// none, when p is a LOSS.
+static move_t winning_move(const position_t *p)
+{
+    move_t list[ENGINE_MAX_MOVES], l2[ENGINE_MAX_MOVES];
+    position_t q;
+    int n = engine_moves(p, list);
+    for (int i = 0; i < n; i++)
+    {
+        engine_make(p, list[i], &q);
+        if (engine_moves(&q, l2) == 0 || probe(key(&q)) == 0)
+            return list[i];
+    }
+    for (int i = 0; i < n; i++)
+    {
+        engine_make(p, list[i], &q);
+        if (!solve_threads(&q))
+            return list[i];
+    }
+    return 0;
+}
+
+
+// Writes the entry of the book of the start of the size of arg to fp:
+// the files, the ranks, 1 if the start is a WIN for White and else 0,
+// the number of moves, and the moves: White's that wins, or for each
+// of White's moves, the move of Black that then wins.
+static void book_size(FILE *fp, const char *arg)
+{
+    position_t p, q;
+    parse_arg(arg, &p);
+    engine_start(&p);
+    table_clear();
+    double t0 = now();
+    int win = solve_threads(&p);
+    char ms[8], ms2[8], text[ENGINE_POSITION_STR_SIZE];
+    fprintf(fp, "    // %dx%d: %s", files, ranks, win ? "a WIN for White, by" : "a LOSS for White; Black's replies:");
+    move_t list[ENGINE_MAX_MOVES], reply[ENGINE_MAX_MOVES];
+    int n = engine_moves(&p, list);
+    if (win)
+    {
+        reply[0] = winning_move(&p);
+        fprintf(fp, " %s\n", engine_move_str(reply[0], ms));
+    }
+    else
+    {
+        for (int i = 0; i < n; i++)
+        {
+            engine_make(&p, list[i], &q);
+            reply[i] = winning_move(&q);
+            if (!reply[i])
+            {
+                fprintf(stderr, "solve: %s: no reply wins\n", engine_position_str(&q, text));
+                exit(1);
+            }
+            fprintf(fp, "%s %s %s", i % 4 ? "," : (i ? "\n    //" : ""), engine_move_str(list[i], ms),
+                    engine_move_str(reply[i], ms2));
+        }
+        fprintf(fp, "\n");
+    }
+    fprintf(fp, "    %d, %d, %d, %d,", files, ranks, win, win ? 1 : n);
+    for (int i = 0; i < (win ? 1 : n); i++)
+        fprintf(fp, "%s 0x%04x,", i % 8 == 0 && i > 0 ? "\n   " : "", reply[i]);
+    fprintf(fp, "\n");
+    printf("book %dx%d: %s, %.0f s\n", files, ranks, win ? "WIN" : "LOSS", now() - t0);
+    fflush(stdout);
+}
+
+// Writes the book of the sizes, n of them, to file; argc and argv are
+// the command line, for its comment.
+static int book(const char *file, int n, char **sizes, int argc, char **argv)
+{
+    FILE *fp = fopen(file, "w");
+    if (!fp)
+    {
+        perror(file);
+        return 1;
+    }
+    fprintf(fp, "/***************************************************************\n"
+                " * book.h: the engine's opening book, of the start of the sizes that\n"
+                " * tools/solve.c solves. Written by it (make book):\n"
+                " *\n"
+                " *   build/host/solve");
+    for (int i = 1; i < argc; i++)
+        fprintf(fp, " %s", argv[i]);
+    fprintf(fp, "\n"
+                " *\n"
+                " * Each entry: the files, the ranks, 1 if the start is a WIN for\n"
+                " * White and 0 if a LOSS, the number of moves, and the moves: if a\n"
+                " * WIN, White's first move, which wins; if a LOSS, for each of White's\n"
+                " * first moves, in the order of engine_moves, Black's reply, which\n"
+                " * wins. A move is a move_t (engine.h): the square it is from in the\n"
+                " * low byte, and the square it is to in the high byte, a square\n"
+                " * rank * 16 + file. 0 ends the book.\n"
+                " *\n"
+                " * Do not edit.\n"
+                " ***************************************************************/\n"
+                "\n"
+                "static const uint16_t book[] = {\n");
+    for (int i = 0; i < n; i++)
+        book_size(fp, sizes[i]);
+    fprintf(fp, "    0,\n};\n");
+    if (fclose(fp))
+    {
+        perror(file);
+        return 1;
+    }
+    return 0;
+}
+
 // Solves every position of a database (db.h), and compares them.
 static int check(const char *file)
 {
@@ -592,7 +709,9 @@ static void usage(void)
             "  --moves        the value of each move at the root\n"
             "  --check FILE   solve every position of a database (tools/db.h), and compare\n"
             "  --dump FILE    write every position that can come from the one argument, with\n"
-            "                 its value, as a database\n");
+            "                 its value, as a database\n"
+            "  --book FILE    write the engine's opening book of the start of the sizes, as\n"
+            "                 src/engine/book.h\n");
     exit(2);
 }
 
@@ -618,6 +737,8 @@ int main(int argc, char **argv)
             check_file = argv[++i];
         else if (i + 1 < argc && !strcmp(a, "--dump"))
             dump_file = argv[++i];
+        else if (i + 1 < argc && !strcmp(a, "--book"))
+            book_file = argv[++i];
         else if (i + 1 < argc && !strcmp(a, "--order"))
         {
             const char *v = argv[++i];
@@ -634,6 +755,8 @@ int main(int argc, char **argv)
     if (hash_mb < 1 || (i == argc && !check_file) || (dump_file && i != argc - 1))
         usage();
     table_init();
+    if (book_file)
+        return book(book_file, argc - i, argv + i, argc, argv);
     if (dump_file)
     {
         position_t p;

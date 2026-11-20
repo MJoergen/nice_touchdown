@@ -32,6 +32,7 @@ go
 seed x
 eval off
 new 8x6
+move a1a2
 go depth 8
 eval
 eval on

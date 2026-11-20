@@ -62,7 +62,7 @@ HOSTFLAGS = -O2 -W -Wall -Wextra
 # The host, without asserts, for the trainer.
 FASTFLAGS = -O2 -W -Wall -Wextra -DNDEBUG
 
-.PHONY: FORCE help all test host-test nice-test perft-deep train weights solve calibrate pawns size deps clean distclean dist
+.PHONY: FORCE help all test host-test nice-test perft-deep train weights solve book calibrate pawns size deps clean distclean dist
 .PHONY: board-text board-screen board-test
 help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
@@ -75,6 +75,8 @@ help:
 	@echo "  make train         learn N-tuple weights by TD self-play on the host, and check them on 4x4"
 	@echo "                     (TRAIN_ARGS= options of tools/train.c), for experiments"
 	@echo "  make weights       learn the engine's weights into src/engine/eval_weights.h (5 minutes)"
+	@echo "  make book          the engine's opening book of the solved sizes into src/engine/book.h"
+	@echo "                     (BOOK_ARGS=, half an hour on 16 cores and 32 GB)"
 	@echo "  make calibrate     fit the probability of a win shown to the values of positions of games,"
 	@echo "                     which the solver finds (CALIBRATE_ARGS=, about 2 hours on 16 cores)"
 	@echo "  make solve         solve the start of boards on the host: who wins (SOLVE_ARGS= options"
@@ -200,6 +202,18 @@ build/host/solve: $(ENGINE) $(HEADERS) tools/solve.c
 solve: build/host/solve
 	build/host/solve $(SOLVE_ARGS)
 
+# The engine's opening book (src/engine/book.c), of the start of the
+# sizes the solver solves, into src/engine/book.h, which is in git
+# (by way of build/gen/book.h, so that it is whole or not there). 10x5
+# takes the most, half an hour on 16 cores.
+BOOK_SIZES ?= 4x4 5x4 6x4 7x4 8x4 9x4 10x4 11x4 12x4 4x5 5x5 6x5 7x5 8x5 9x5 10x5 4x6 5x6 6x6 7x6 8x6
+BOOK_ARGS ?= --threads 16 --hash 32768
+
+book: build/host/solve
+	@mkdir -p build/gen
+	build/host/solve $(BOOK_ARGS) --book build/gen/book.h $(BOOK_SIZES)
+	cp build/gen/book.h src/engine/book.h
+
 # The calibration of the probability of a win that the engine shows
 # (src/engine/search.c): tools/calibrate.c plays games, and
 # tools/calibrate.py solves their positions, with the solver, and fits
@@ -267,6 +281,7 @@ host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/g
 	@tools/runtest.sh host_solve solve /dev/null host build/host/solve --hash 64 --order plain \
 	  --check build/gen/touchdown4x4.txt 4x4 5x4 6x4 7x4 4x5 5x5 6x5 4x6 5x6
 	@tools/runtest.sh host_search search tests/search.input host build/host/td_text
+	@tools/runtest.sh host_book book tests/book.input host build/host/td_text
 
 SCREEN_TESTS = screen screen_size screen_game screen_quit
 
@@ -279,6 +294,7 @@ nice-test: build/nice/td_text.bin build/test/mon_td_text.bin build/nice/perftsui
 	@tools/runtest.sh nice_text text tests/text.input nice build/nice/td_text.bin
 	@tools/runtest.sh nice_perft perft tests/perft.input nice build/nice/td_text.bin
 	@tools/runtest.sh nice_search search tests/search.input nice build/nice/td_text.bin
+	@tools/runtest.sh nice_book book tests/book.input nice build/nice/td_text.bin
 	@tools/runtest.sh mega65_text text tests/text.input nice build/test/mon_td_text.bin
 	@tools/runtest.sh nice_perftsuite2 perftsuite2 /dev/null nice build/nice/perftsuite.bin
 
@@ -310,6 +326,7 @@ board-test: build/mega65/td_text.bin
 	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_text text tests/text.input board build/mega65/td_text.bin
 	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_perft perft tests/perft.input board build/mega65/td_text.bin
 	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_search search tests/search.input board build/mega65/td_text.bin
+	@BOARDLINK="$(BOARDLINK)" tools/runtest.sh board_book book tests/book.input board build/mega65/td_text.bin
 
 # A release (doc/RELEASE.md): the archive nice_touchdown-VERSION.tar.gz,
 # whose directory holds the windowed front end, for the MEGA65 as

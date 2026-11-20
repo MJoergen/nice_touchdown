@@ -19,6 +19,7 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make train       # learn N-tuple weights by TD self-play, and check them on 4x4 (about 1.5 minutes)
     make weights     # learn the engine's weights into src/engine/eval_weights.h (about 5 minutes)
     make solve       # solve the start of the boards solved in under 30 s each: who wins (about a minute)
+    make book        # the opening book of the solved sizes into src/engine/book.h (about half an hour on 16 cores and 32 GB)
     make calibrate   # fit the probability of a win shown to solved positions of games (about 2 hours on 16 cores)
 
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
@@ -246,6 +247,26 @@ with the others, but took 3 to 10 times the nodes of the depth-first
 search, with about as many positions in the table, as on these boards
 most of the work is to show that every move of a lost position loses,
 where the order of the search does not help.
+
+## The opening book
+
+`src/engine/book.c` has the value of the start of each size that the
+solver solves, and a move that wins: White's, or, if White loses,
+Black's reply to each move of White's. `tools/solve.c --book FILE
+SIZE...` solves them and writes `book.h`; `make book` (`BOOK_SIZES`,
+`BOOK_ARGS`) writes it into `src/engine/book.h`, which is in git. Each
+move that wins is the first in the order of `engine_moves` whose
+position the solver's table has as a LOSS, or else that it solves as
+one. It takes 26 minutes on 16 cores, 23 of them for 10x5; a size solved
+since goes into `BOOK_SIZES`.
+
+The search gives the book's value, `ENGINE_BOOK_WIN` or its negative,
+only when it proves neither a Win nor a Loss itself, and then plays the
+book's move, if a WIN. The test `book` (`tests/book.input`, on the
+host, in niceemu, and on the board) searches at depth 1, which proves
+nothing, the start of each size and, where White loses, the position
+after each of White's first moves, and plays the book's move; and 9x6,
+which the book has not. That the moves win, the solver found.
 
 ## The probability of a win
 

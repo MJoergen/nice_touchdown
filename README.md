@@ -201,7 +201,18 @@ depth 8 without it, with fewer nodes.
 
 The screen shows the score as `Win in N` or `Loss in N`, where N
 counts plies, or as the probability of a win, such as `62%`; or
-`Even`, with the evaluation off.
+`Even`, with the evaluation off; or `Win` or `Loss`, the opening
+book's.
+
+The opening book has the value of the start of each size that is
+solved (Solved boards, below): if White wins, a move that wins; if
+White loses, for each move of White's, a move of Black's that wins.
+There the engine shows `Win` or `Loss` without the plies, which the
+book does not know, and plays the book's move, unless its search
+proves a Win or a Loss itself. After the book's first move of each
+side, the search goes on alone, and does not know the way to the win.
+The book is 21 sizes in 151 numbers of 16 bits, which `make book` writes into
+`src/engine/book.h` by the solver.
 
 The probability is calibrated: of the positions it shows as 70 to
 80%, about three in four are a win. The score of the search is too
@@ -275,7 +286,8 @@ tests and the trainer check against them.
 
 The default board, 8x6, is a win for White, found in under 2 minutes
 with 16 threads; 10x5, the largest solved, took 32 minutes. The sizes
-left empty are not solved yet.
+left empty are not solved yet. The engine's opening book has the
+sizes solved.
 
 ## After the first version
 
