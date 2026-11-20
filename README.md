@@ -203,6 +203,19 @@ The screen shows the score as `Win in N` or `Loss in N`, where N
 counts plies, or as the probability of a win, such as `62%`; or
 `Even`, with the evaluation off.
 
+The probability is calibrated: of the positions it shows as 70 to
+80%, about three in four are a win. The score of the search is too
+careful by itself, as the self-play learns from games with many moves
+at random, and it leaves out that the side to move has the move: of
+the positions of games that the solver finds the value of, those of a
+score of 0, which would be 50%, are a win for the side to move 61% of
+the time, and those of 0.5, which would be 62%, 77% of the time. So
+the probability shown is a table of the score, fitted to the values
+of 13000 positions of games on 6x6 to 12x6, from move 8 on, at depths
+4 to 8 (`make calibrate`). On positions of other games, at depth 6,
+it is within 4 points in each tenth; the score taken as it is was 10
+to 25 points too low above 50%, and as much too high below.
+
 ### The board
 
 Each side's pawns are a bitboard of 6 ranks of 16 bits each: three

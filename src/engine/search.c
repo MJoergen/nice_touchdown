@@ -200,13 +200,27 @@ void engine_search(const position_t *p, int depth, int (*stop)(void), engine_sea
     r->nodes = nodes;
 }
 
-// The probability of a win, in percent, of an evaluation of 10 * i
-// hundredths of a logit: 100 / (1 + e^(-i / 10)), at most 99, as only
-// a proved score is a sure win.
-static const uint8_t percent[51] = {
-    50, 52, 55, 57, 60, 62, 65, 67, 69, 71, 73, 75, 77, 79, 80, 82, 83,
-    85, 86, 87, 88, 89, 90, 91, 92, 92, 93, 94, 94, 95, 95, 96, 96, 96,
-    97, 97, 97, 98, 98, 98, 98, 98, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+// The probability that the side to move wins, in percent, of a score
+// that is not proved, of PERCENT_MIN + PERCENT_STEP * i hundredths of
+// a logit, from 1 to 99, as only a proved score is sure. The scores of
+// the search are too careful by themselves: of the positions of games
+// that the solver finds the value of, those of a score of 0 are a WIN
+// for the side to move 61% of the time, as it has the move, and those
+// of 0.5, which would be 62%, 77% of the time. The
+// table is that probability, from the scores at depths 4 to 8 and the
+// values: make calibrate (tools/calibrate.c and calibrate.py) fits it,
+// and prints it.
+#define PERCENT_MIN (-252)
+#define PERCENT_STEP 4
+static const uint8_t percent[127] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4,
+    4, 5, 5, 5, 6, 7, 8, 9, 11, 12, 14, 16, 18, 21, 25, 28, 32,
+    36, 39, 41, 42, 45, 47, 50, 52, 54, 55, 57, 59, 61, 63, 65, 66, 67,
+    68, 69, 70, 70, 71, 72, 73, 75, 77, 79, 81, 84, 85, 86, 88, 89, 91,
+    92, 93, 94, 94, 95, 95, 95, 96, 97, 97, 98, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
 };
 
 // Writes n, of 0 to 99999, in decimal to c, and returns the end.
@@ -241,9 +255,9 @@ char *engine_score_str(int score, char *s)
     }
     else
     {
-        int i = (score < 0 ? -score : score) + 5;
-        i = i >= 510 ? 50 : i / 10;
-        c = put_number(c, score < 0 ? 100 - percent[i] : percent[i]);
+        int i = (score - PERCENT_MIN + PERCENT_STEP / 2) / PERCENT_STEP;
+        i = i < 0 ? 0 : i > 126 ? 126 : i;
+        c = put_number(c, percent[i]);
         *c++ = '%';
     }
     *c = '\0';

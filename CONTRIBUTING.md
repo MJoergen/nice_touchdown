@@ -19,6 +19,7 @@ a C and a C++ compiler for the host, `git`, and `curl`.
     make train       # learn N-tuple weights by TD self-play, and check them on 4x4 (about 1.5 minutes)
     make weights     # learn the engine's weights into src/engine/eval_weights.h (about 5 minutes)
     make solve       # solve the start of the boards solved in under 30 s each: who wins (about a minute)
+    make calibrate   # fit the probability of a win shown to solved positions of games (about 2 hours on 16 cores)
 
 To use local copies of nice_cpu and niceemu instead, pass `NICE_CPU=DIR`
 and `NICEEMU=PATH` to make.
@@ -245,6 +246,46 @@ with the others, but took 3 to 10 times the nodes of the depth-first
 search, with about as many positions in the table, as on these boards
 most of the work is to show that every move of a lost position loses,
 where the order of the search does not help.
+
+## The probability of a win
+
+The engine shows a score that is not proved as the probability that
+the side to move wins, by a table of the score (`percent[]` of
+`src/engine/search.c`). `make calibrate` fits it:
+`tools/calibrate.c` plays 200 games on each of 8x6, 6x6, 8x5, 10x4
+and 12x6, at depth 6, from 0 to 4 moves at random, and prints the
+positions from ply 8 on whose score is not proved, with the scores of
+the search at depths 1 to 8. `tools/calibrate.py` solves each with the
+solver, 16 at a time and in at most 30 s each, and keeps the values in
+`build/calibrate/values.txt`, so that a run again solves only the new
+(`--cached`, none). It prints the log loss of the probability as the
+score is, as the engine's table has it, and as the best logistic
+`1 / (1 + e^-(a * score / 100 + b))` has it, for each size and depth;
+how often a position is a WIN for each tenth of the probability shown
+at depth 6; and a new table, the probability that only rises with the
+score and fits the values best (isotonic regression), of the scores at
+depths 4 to 8, for `src/engine/search.c`. After a new table, the tests
+that show a probability have new expected outputs.
+
+The table of now is from 12993 positions, solved of 18525 in 30 s
+each (12x6 3135 of 6991, the others most), with 62053 scores; a full
+run takes about 2 hours on 16 cores, most of it in the positions of
+12x6 that are not solved in time. Its log loss, and that of the score
+as it is and of the best logistic:
+
+| Depth | As it is | Best logistic | The table |
+|-------|----------|---------------|-----------|
+| 4     | 0.6355   | 0.6136        | 0.6110    |
+| 6     | 0.5690   | 0.5236        | 0.5181    |
+| 8     | 0.5566   | 0.5003        | 0.4968    |
+
+The best logistic has a of 1.8 at depth 4 to 2.5 at depth 8, and b of
+0.3 to 0.5: the score is too careful, more so the deeper, and leaves
+out the move. A logistic is too steep in the middle and not steep
+enough at the ends, where the table is right: at depth 6, positions
+that a = 2.5, b = 0.5 shows as 80 to 90% are a WIN 74% of the time.
+On 8216 positions of other games, the table is within 4 points in
+each tenth at depth 6.
 
 ## The evaluation and its trainer
 

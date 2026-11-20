@@ -25,7 +25,8 @@ Makefile, the tests, the platform layer, and the front ends.
   (`src/engine/eval_weights.h`, `make weights`); `solve.c`, the
   solver of positions and of the start of boards (`make solve`), which
   writes the databases (`--dump`); `db.h`, the databases, for the
-  programs of the host; `size.py` and
+  programs of the host; `calibrate.c` and `calibrate.py`, the fit of
+  the probability of a win shown (`make calibrate`); `size.py` and
   `board.py`, nice_chess's, for `make size` and the board; `mockup.py`
   draws the mockups of the README; `mkpawns.py` draws the pawns into
   `src/ui/pawns.h` (`make pawns`).
@@ -50,6 +51,7 @@ Makefile, the tests, the platform layer, and the front ends.
     make train          # tools/train.c: N-tuple weights by TD self-play, checked on 4x4
     make weights        # the engine's weights, src/engine/eval_weights.h, by make train's way
     make solve          # tools/solve.c: who wins the start of the boards solved in under 30 s
+    make calibrate      # the probability of a win shown, fitted to solved positions (hours)
     make dist           # the archive of a release in build/dist/ (VERSION=V1.0)
 
 The board targets (`board-*`) need `ETH=IP` or `PORT=DEVICE` and a

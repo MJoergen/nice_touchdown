@@ -62,7 +62,7 @@ HOSTFLAGS = -O2 -W -Wall -Wextra
 # The host, without asserts, for the trainer.
 FASTFLAGS = -O2 -W -Wall -Wextra -DNDEBUG
 
-.PHONY: FORCE help all test host-test nice-test perft-deep train weights solve pawns size deps clean distclean dist
+.PHONY: FORCE help all test host-test nice-test perft-deep train weights solve calibrate pawns size deps clean distclean dist
 .PHONY: board-text board-screen board-test
 help:
 	@echo "nice_touchdown: the game of TouchDown for the NICE system"
@@ -75,6 +75,8 @@ help:
 	@echo "  make train         learn N-tuple weights by TD self-play on the host, and check them on 4x4"
 	@echo "                     (TRAIN_ARGS= options of tools/train.c), for experiments"
 	@echo "  make weights       learn the engine's weights into src/engine/eval_weights.h (5 minutes)"
+	@echo "  make calibrate     fit the probability of a win shown to the values of positions of games,"
+	@echo "                     which the solver finds (CALIBRATE_ARGS=, about 2 hours on 16 cores)"
 	@echo "  make solve         solve the start of boards on the host: who wins (SOLVE_ARGS= options"
 	@echo "                     and sizes of tools/solve.c; by default the sizes solved in under 30 s)"
 	@echo "  make size          the size of the MEGA65 builds, against the board's budget"
@@ -197,6 +199,22 @@ build/host/solve: $(ENGINE) $(HEADERS) tools/solve.c
 
 solve: build/host/solve
 	build/host/solve $(SOLVE_ARGS)
+
+# The calibration of the probability of a win that the engine shows
+# (src/engine/search.c): tools/calibrate.c plays games, and
+# tools/calibrate.py solves their positions, with the solver, and fits
+# the probability to them. The values are kept in
+# build/calibrate/values.txt, so that a run again solves only the new.
+CALIBRATE_ARGS ?=
+
+build/host/calibrate: $(ENGINE) $(HEADERS) tools/calibrate.c
+	@mkdir -p $(@D)
+	$(CC) $(FASTFLAGS) -o $@ $(ENGINE) tools/calibrate.c
+
+calibrate: build/host/calibrate build/host/solve
+	@mkdir -p build/calibrate
+	build/host/calibrate $(CALIBRATE_ARGS) > build/calibrate/positions.txt
+	$(PYTHON) tools/calibrate.py build/calibrate/positions.txt
 
 # The databases of the solver: every position that can come from the
 # start of a size, with its value (tools/db.h), such as
