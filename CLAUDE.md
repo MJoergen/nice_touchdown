@@ -15,13 +15,17 @@ Makefile, the tests, the platform layer, and the front ends.
 - `tests/`: the inputs of the tests, `*.grep` (the lines of the output
   that are compared) and `*.expected`. `tools/runtest.sh` runs one test.
   `perftsuite.c` checks the move generator against a slow one, and
-  `tablebase.c` the search against touchdown_db's 4x4 database; after a
-  change to the engine, both must still pass. `tablebase eval` (the
-  test `evaldb`) measures `engine_eval` alone against the database;
-  its expected output changes with the weights.
+  `tablebase.c` the search against the databases of positions and
+  their values (`tools/db.h`: touchdown_db's of 4x4, and the solver's,
+  `build/gen/solve_SIZE.txt`, of 6x4 and 5x5); after a change to the
+  engine, both must still pass. `tablebase eval` (the tests `evaldb*`)
+  measures `engine_eval` alone against them; their expected outputs
+  change with the weights.
 - `tools/`: `runtest.sh`; `train.c`, the trainer of the evaluation
   (`src/engine/eval_weights.h`, `make weights`); `solve.c`, the
-  solver of positions and of the start of boards (`make solve`); `size.py` and
+  solver of positions and of the start of boards (`make solve`), which
+  writes the databases (`--dump`); `db.h`, the databases, for the
+  programs of the host; `size.py` and
   `board.py`, nice_chess's, for `make size` and the board; `mockup.py`
   draws the mockups of the README; `mkpawns.py` draws the pawns into
   `src/ui/pawns.h` (`make pawns`).

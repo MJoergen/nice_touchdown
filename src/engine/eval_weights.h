@@ -2,7 +2,7 @@
  * eval_weights.h: the weights of the evaluation (eval.c), in
  * hundredths of a logit. Written by tools/train.c (make weights):
  *
- *   build/host/train --db build/gen/touchdown4x4.txt --sizes all --games 10000000 --seed 1 --report 1000000 --save build/train/weights.f32 --header src/engine/eval_weights.h
+ *   build/host/train --db build/gen/touchdown4x4.txt --db build/gen/solve_6x4.txt --db build/gen/solve_5x5.txt --db build/gen/solve_4x6.txt --sizes all --games 10000000 --seed 1 --report 1000000 --save build/train/weights.f32 --header src/engine/eval_weights.h
  *
  * Do not edit.
  ***************************************************************/

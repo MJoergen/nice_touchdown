@@ -1,0 +1,15 @@
+evaldb 5x5: the sign of engine_eval against solve, without a search
+  all                   576730: right  91.19% (majority  70.00%), move keeps the win  97.91%
+  not won at once       283219: right  86.33% (majority  61.09%), move keeps the win  92.33%
+  not won at once, by the evaluation's probability of a win:
+    0- 10%   48421: probability   6.1%, WIN   0.0%
+   10- 20%   47024: probability  14.5%, WIN   0.3%
+   20- 30%   29363: probability  24.8%, WIN   6.4%
+   30- 40%   27674: probability  35.1%, WIN  26.6%
+   40- 50%   29837: probability  45.0%, WIN  48.9%
+   50- 60%   31442: probability  54.9%, WIN  69.8%
+   60- 70%   28544: probability  64.9%, WIN  85.6%
+   70- 80%   24137: probability  74.8%, WIN  96.0%
+   80- 90%   14205: probability  84.2%, WIN  99.4%
+   90-100%    2572: probability  92.4%, WIN 100.0%
+exit 0

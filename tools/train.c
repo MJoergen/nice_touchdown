@@ -1,6 +1,7 @@
 /***************************************************************
  * train.c: learns the weights of an N-tuple evaluation by self-play,
- * with TD(λ), and checks it against touchdown_db's 4x4 database. On
+ * with TD(λ), and checks it against databases of positions and their
+ * values (tools/db.h). On
  * the host only; an experiment, not yet part of the engine.
  *
  *   train [OPTIONS]
@@ -36,15 +37,16 @@
  * is that of the logistic loss: alpha times (target - value) added to
  * the weight of each window.
  *
- * The check (--db FILE, touchdown_db -d's dump, as tests/tablebase.c
- * reads it). For each position of the database where the game is not
- * over, whether the sign of the evaluation is touchdown_db's value,
+ * The check (--db FILE, more than one: touchdown_db -d's dump of the
+ * 4x4 board, or solve --dump's of a size). For each position of each
+ * database where the game is not over, whether the sign of the
+ * evaluation is the database's value,
  * and, in its WINs, whether the move of the evaluation, as the
  * training plays, keeps the win. Every --report games, and at the end.
  *
- * --fit EPOCHS learns the database itself instead, by the same update
- * with touchdown_db's values as the targets: how well the windows can
- * know the 4x4 board at all.
+ * --fit EPOCHS learns the databases themselves instead, by the same
+ * update with their values as the targets: how well the windows can
+ * know those boards at all.
  *
  * Copyright (c) 2026 Michael Jørgensen. MIT license (see LICENSE).
  ***************************************************************/
@@ -56,6 +58,7 @@
 #include <time.h>
 #include "../src/engine/engine.h"
 #include "../src/engine/eval_weights.h"
+#include "db.h"
 
 /***************************************************************
  * The options
@@ -70,7 +73,6 @@ static uint64_t seed0 = 1;
 static int    win_w = 3, win_h = 2;
 static int    material;
 static int    fit_epochs;
-static const char *db_file;
 static const char *save_file;
 static const char *load_file;
 static const char *header_file;
@@ -306,114 +308,57 @@ static void play_game(void)
 }
 
 /***************************************************************
- * touchdown_db's database of the 4x4 board
+ * The databases (--db): touchdown_db's of the 4x4 board, and solve
+ * --dump's of other sizes (tools/db.h)
  ***************************************************************/
-#define MAX_DB 1000000
+#define MAX_DBS 16
 
-typedef struct
+static const char *db_files[MAX_DBS];
+static db_t dbs[MAX_DBS];
+static unsigned char *db_reach[MAX_DBS]; // Whether each position can come from the start
+static int n_dbs;
+
+// Marks the positions of database d that can come from p: p, and its
+// mirror if the database has both.
+static void reach(int d, const position_t *p)
 {
-    uint32_t key;
-    int index; // In db_pos
-} entry_t;
-
-static position_t *db_pos;
-static int *db_win;
-static char *db_reach; // Whether the position can come from the start
-static int n_db;
-static entry_t *db_table; // by key
-
-// As in tests/tablebase.c: a 4x4 position from the side to move, as
-// 32 bits, with Black's board turned around.
-static uint32_t key(const position_t *p)
-{
-    uint32_t k = 0;
-    for (int r = 0; r < 4; r++)
-        for (int f = 0; f < 4; f++)
-        {
-            int pawn = engine_pawn(p, f, r);
-            if (pawn < 0)
-                continue;
-            int sq = p->side == WHITE ? r * 4 + f : (3 - r) * 4 + (3 - f);
-            k |= 1u << (sq + (pawn == p->side ? 16 : 0));
-        }
-    return k;
-}
-
-static int compare(const void *a, const void *b)
-{
-    uint32_t x = ((const entry_t *) a)->key, y = ((const entry_t *) b)->key;
-    return x < y ? -1 : x > y;
-}
-
-// The index of p in db_pos, or -1 if it is not in the database.
-static int lookup(const position_t *p)
-{
-    entry_t e = {key(p), 0};
-    entry_t *f = bsearch(&e, db_table, (size_t) n_db, sizeof e, compare);
-    return f ? f->index : -1;
-}
-
-// Marks the positions that can come from p.
-static void reach(const position_t *p)
-{
-    int i = lookup(p);
-    if (i < 0 || db_reach[i])
+    const db_t *db = &dbs[d];
+    if (db_over(p))
         return;
-    db_reach[i] = 1;
+    db_entry_t e = {db_key(p), 0};
+    db_entry_t *f = bsearch(&e, db->keys, (size_t) db->n_keys, sizeof e, db_compare);
+    if (!f || db_reach[d][f->index])
+        return;
+    db_entry_t *g = f;
+    while (g > db->keys && !db_compare(g - 1, f))
+        g--;
+    for (; g < db->keys + db->n_keys && !db_compare(g, f); g++)
+        db_reach[d][g->index] = 1;
     move_t list[ENGINE_MAX_MOVES];
     int n = engine_moves(p, list);
     for (int k = 0; k < n; k++)
     {
         position_t q;
         engine_make(p, list[k], &q);
-        reach(&q);
+        reach(d, &q);
     }
 }
 
-static void load_db(void)
+static void load_dbs(void)
 {
-    FILE *fp = fopen(db_file, "r");
-    if (!fp)
+    for (int d = 0; d < n_dbs; d++)
     {
-        perror(db_file);
-        exit(1);
-    }
-    db_pos = malloc(MAX_DB * sizeof *db_pos);
-    db_win = malloc(MAX_DB * sizeof *db_win);
-    db_reach = calloc(MAX_DB, 1);
-    db_table = malloc(MAX_DB * sizeof *db_table);
-    if (!db_pos || !db_win || !db_reach || !db_table)
-    {
-        perror("train");
-        exit(1);
-    }
-    char line[256], t[24];
-    while (fgets(line, sizeof line, fp) && n_db < MAX_DB)
-    {
-        char *s = strchr(line, ':');
-        if (!s)
-            continue;
-        s += 2;
-        for (int r = 0; r < 4; r++, s += 5)
+        db_load(&dbs[d], db_files[d]);
+        db_reach[d] = calloc((size_t) dbs[d].n, 1);
+        if (!db_reach[d])
         {
-            memcpy(t + r * 5, s, 4);
-            t[r * 5 + 4] = r < 3 ? '/' : ' ';
+            perror("train");
+            exit(1);
         }
-        t[20] = 'x';
-        t[21] = '\0';
-        if (engine_set_position(&db_pos[n_db], t))
-            continue;
-        db_win[n_db] = strstr(line, "WIN") != NULL;
-        db_table[n_db].key = key(&db_pos[n_db]);
-        db_table[n_db].index = n_db;
-        n_db++;
+        position_t p;
+        engine_start(&p);
+        reach(d, &p);
     }
-    fclose(fp);
-    qsort(db_table, (size_t) n_db, sizeof *db_table, compare);
-    position_t p;
-    engine_set_size(4, 4);
-    engine_start(&p);
-    reach(&p);
 }
 
 // Counts of the check: the positions, those the evaluation has right,
@@ -435,85 +380,111 @@ static void count(count_t *c, int win, double v, int kept)
 static void print_count(const char *what, const count_t *c)
 {
     long major = c->losses > c->wins ? c->losses : c->wins;
-    printf("  %-22s %7ld: value %6.2f%% (majority %6.2f%%)", what, c->n, 100.0 * c->right / c->n,
+    printf("  %-22s %8ld: value %6.2f%% (majority %6.2f%%)", what, c->n, 100.0 * c->right / c->n,
            100.0 * major / c->n);
     if (c->wins)
         printf(", move keeps the win %6.2f%%", 100.0 * c->kept / c->wins);
     printf("\n");
 }
 
-// Prints how often the evaluation has the value of the database, and
-// how often its move keeps a win: of all its positions where the game
-// is not over, and of those that can come from the start; and of each,
-// those not won at once by a move to the last rank.
+// Prints, for each database, how often the evaluation has its value,
+// and how often its move keeps a win: of all its positions where the
+// game is not over, and, if it has others (as touchdown_db's), of
+// those that can come from the start; and of each, those not won at
+// once by a move to the last rank.
 static void check_db(const char *what)
 {
     move_t list[ENGINE_MAX_MOVES];
-    count_t all = {0}, all_hard = {0}, start = {0}, start_hard = {0};
-    double loss = 0;
-    engine_set_size(4, 4);
-    for (int i = 0; i < n_db; i++)
+    for (int d = 0; d < n_dbs; d++)
     {
-        const position_t *p = &db_pos[i];
-        int k = engine_moves(p, list);
-        if (k == 0)
-            continue;
-        int win = db_win[i];
-        double v = sigmoid(logit(p));
-        loss -= log(win ? v + 1e-12 : 1 - v + 1e-12);
-        int kept = 0;
-        if (win)
+        const db_t *db = &dbs[d];
+        count_t all = {0}, all_hard = {0}, start = {0}, start_hard = {0};
+        double loss = 0;
+        engine_set_size(db->files, db->ranks);
+        for (long i = 0; i < db->n; i++)
         {
-            position_t q;
-            engine_make(p, best_move(p, list, k), &q);
-            int j = lookup(&q);
-            kept = engine_moves(&q, list) == 0 || (j >= 0 && !db_win[j]);
-        }
-        int hard = SQUARE_RANK(MOVE_TO(list[0])) < 3; // The moves to the last rank come first
-        count(&all, win, v, kept);
-        if (hard)
-            count(&all_hard, win, v, kept);
-        if (db_reach[i])
-        {
-            count(&start, win, v, kept);
+            const position_t *p = &db->pos[i];
+            int k = engine_moves(p, list);
+            if (k == 0)
+                continue;
+            int win = db->win[i];
+            double v = sigmoid(logit(p));
+            loss -= log(win ? v + 1e-12 : 1 - v + 1e-12);
+            int kept = 0;
+            if (win)
+            {
+                position_t q;
+                engine_make(p, best_move(p, list, k), &q);
+                long j = db_lookup(db, &q);
+                kept = engine_moves(&q, list) == 0 || (j >= 0 && !db->win[j]);
+            }
+            // The moves to the last rank come first.
+            int last = p->side == WHITE ? db->ranks - 1 : 0;
+            int hard = SQUARE_RANK(MOVE_TO(list[0])) != last;
+            count(&all, win, v, kept);
             if (hard)
-                count(&start_hard, win, v, kept);
+                count(&all_hard, win, v, kept);
+            if (db_reach[d][i])
+            {
+                count(&start, win, v, kept);
+                if (hard)
+                    count(&start_hard, win, v, kept);
+            }
+        }
+        printf("%s, %dx%d: log loss %.4f\n", what, db->files, db->ranks, loss / all.n);
+        print_count("all", &all);
+        print_count("all, not won at once", &all_hard);
+        if (start.n < all.n)
+        {
+            print_count("from the start", &start);
+            print_count("  not won at once", &start_hard);
         }
     }
-    printf("%s: log loss %.4f\n", what, loss / all.n);
-    print_count("all", &all);
-    print_count("all, not won at once", &all_hard);
-    print_count("from the start", &start);
-    print_count("  not won at once", &start_hard);
     fflush(stdout);
 }
 
-// Learns the database: its values as the targets, in a random order.
+// Learns the databases: their values as the targets, each database in
+// turn, in a random order.
 static void fit_db(void)
 {
     move_t list[ENGINE_MAX_MOVES];
-    int *order = malloc((size_t) n_db * sizeof *order);
-    int n = 0;
-    engine_set_size(4, 4);
-    for (int i = 0; i < n_db; i++)
-        if (engine_moves(&db_pos[i], list) > 0)
-            order[n++] = i;
+    long *order[MAX_DBS], n[MAX_DBS];
+    for (int d = 0; d < n_dbs; d++)
+    {
+        order[d] = malloc((size_t) dbs[d].n * sizeof *order[d]);
+        if (!order[d])
+        {
+            perror("train");
+            exit(1);
+        }
+        n[d] = 0;
+        engine_set_size(dbs[d].files, dbs[d].ranks);
+        for (long i = 0; i < dbs[d].n; i++)
+            if (engine_moves(&dbs[d].pos[i], list) > 0)
+                order[d][n[d]++] = i;
+    }
     for (int e = 1; e <= fit_epochs; e++)
     {
-        for (int i = n - 1; i > 0; i--)
+        for (int d = 0; d < n_dbs; d++)
         {
-            int j = (int) (rnd() % (uint32_t) (i + 1));
-            int x = order[i];
-            order[i] = order[j];
-            order[j] = x;
+            long *o = order[d];
+            engine_set_size(dbs[d].files, dbs[d].ranks);
+            for (long i = n[d] - 1; i > 0; i--)
+            {
+                long j = (long) (rnd() % (uint32_t) (i + 1));
+                long x = o[i];
+                o[i] = o[j];
+                o[j] = x;
+            }
+            for (long i = 0; i < n[d]; i++)
+                learn(&dbs[d].pos[o[i]], dbs[d].win[o[i]]);
         }
-        for (int i = 0; i < n; i++)
-            learn(&db_pos[order[i]], db_win[order[i]]);
         char what[32];
         snprintf(what, sizeof what, "epoch %d", e);
         check_db(what);
     }
-    free(order);
+    for (int d = 0; d < n_dbs; d++)
+        free(order[d]);
 }
 
 /***************************************************************
@@ -690,8 +661,9 @@ static void usage(void)
             "  --material     a weight for each difference of the pawns\n"
             "  --seed S       the seed (1)\n"
             "  --report N     check against the database every N games (100000)\n"
-            "  --db FILE      touchdown_db -d's dump of the 4x4 board\n"
-            "  --fit EPOCHS   learn the database itself instead of self-play\n"
+            "  --db FILE      a database to check against: touchdown_db -d's dump of the 4x4\n"
+            "                 board, or solve --dump's of a size (tools/db.h); more than one\n"
+            "  --fit EPOCHS   learn the databases themselves instead of self-play\n"
             "  --save FILE    write the weights, as floats\n"
             "  --load FILE    start from the weights of --save\n"
             "  --header FILE  write the weights, as the engine's eval_weights.h\n"
@@ -736,7 +708,11 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--report"))
             report_every = atol(v);
         else if (!strcmp(a, "--db"))
-            db_file = v;
+        {
+            if (n_dbs == MAX_DBS)
+                usage();
+            db_files[n_dbs++] = v;
+        }
         else if (!strcmp(a, "--fit"))
             fit_epochs = atoi(v);
         else if (!strcmp(a, "--save"))
@@ -766,12 +742,12 @@ int main(int argc, char **argv)
         }
         fclose(fp);
     }
-    if (db_file)
-        load_db();
+    if (n_dbs)
+        load_dbs();
 
     if (fit_epochs)
     {
-        if (!db_file)
+        if (!n_dbs)
             usage();
         fit_db();
     }
@@ -786,7 +762,7 @@ int main(int argc, char **argv)
                 char what[64];
                 snprintf(what, sizeof what, "%ld games, %.0f s", g,
                          (double) (clock() - start) / CLOCKS_PER_SEC);
-                if (db_file)
+                if (n_dbs)
                     check_db(what);
                 else
                     printf("%s\n", what);

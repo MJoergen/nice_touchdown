@@ -46,12 +46,21 @@ the position after each, and the text of moves and positions. Its
 `.expected` files hold the counts of the tree and how the games ended,
 which the slow generator checks as they are made.
 
-`tests/tablebase.c` checks the search against touchdown_db's database
-of the 4x4 board, and measures the evaluation alone against it
-(below). The test `solve` checks the solver against it too, and solves
+`tests/tablebase.c` checks the search against the databases of
+positions and their values, touchdown_db's of 4x4 and the solver's of
+6x4 and 5x5, and measures the evaluation alone against them (below).
+The test `solve` checks the solver against touchdown_db's, and solves
 the boards up to 6x5 and 5x6.
 
-## The 4x4 database
+## The databases
+
+A database is a file of positions and their values, WIN or LOSS for
+the side to move, of one size of board. There are two kinds, which
+`tools/db.h` reads for the programs of the host: touchdown_db's of
+every 4x4 position, and the solver's of every position that can come
+from the start of a size.
+
+### touchdown_db's of 4x4
 
 [touchdown_db](https://github.com/MJoergen/touchdown_db), at the
 commit of `TOUCHDOWN_DB_COMMIT` in the Makefile, has the value, WIN or
@@ -90,41 +99,84 @@ the value. Games that are over, lost by the side to move, are among
 them. `touchdown4x4.txt` has 755591 lines: 220104 WIN and 535487 LOSS.
 The start is a WIN: on 4x4 the player who moves first wins.
 
-It is used three times:
+### The solver's
 
-- `tests/tablebase.c` (`make test`) searches every position to depth
-  24, which reaches the end of every game, and checks that the value
-  is the database's and proved, that the move played in a WIN leads to
-  a LOSS of the database, and that a Win in N is followed by a Loss in
-  N - 1. Its expected output: `755591 positions, 220104 wins, 535487
-  losses, 0 differences`.
-- `tablebase eval` (the test `evaldb`) measures the engine's
-  evaluation alone, `engine_eval` without a search, in the 275836
-  positions that have a move: how often its sign is the database's
-  value, and how often the move it would play (one that ends the game,
-  or else the one whose position is worst for the opponent) keeps a
-  WIN. It reports all of them, those not won at once by a move to the
-  last rank, those that can come from the start (8077), and those of
-  them not won at once (3722); and, of those not won at once, how
-  often a WIN is for each tenth of the evaluation's probability of a
-  win. It is a measure, not a check, and `tests/evaldb.expected`
-  changes with the weights.
-- `tools/train.c --db` (`make train`, `make weights`) checks the
-  evaluation it learns in the same way, with its weights as floats
-  rather than the engine's hundredths.
+`solve --dump FILE SIZE` (below) writes every position that can come
+from the start of SIZE, with its value, one to a line, as a position
+as text then the value: `OOOO/..../.X../XX.X o LOSS`. A position, the
+same with the other side to move, and their mirrors come as one. The
+build makes them as `build/gen/solve_SIZE.txt`, such as
+`build/gen/solve_6x4.txt`. They are far smaller than touchdown_db's
+kind of database, of every position, as most positions never come in
+a game:
 
-The figures of the README's evaluation are of the last 3722, where
-always guessing the more common value is right for 60%:
+| Size | Positions | File   | Time  |
+|------|-----------|--------|-------|
+| 4x4  | 4055      | 0.1 MB |       |
+| 4x5  | 23945     | 0.6 MB |       |
+| 5x4  | 61319     | 2 MB   |       |
+| 4x6  | 93399     | 3 MB   |       |
+| 5x5  | 576730    | 20 MB  | 0.3 s |
+| 6x4  | 882745    | 30 MB  | 0.6 s |
+| 5x6  | 3.2 M     | 120 MB | 2 s   |
+| 7x4  | 12.4 M    | 470 MB | 9 s   |
+| 6x5  | 13.1 M    | 540 MB | 9 s   |
+| 6x6  | 102 M     | 4 GB   | 83 s  |
+| 8x4  | 173 M     | 7 GB   | 167 s |
+
+Each file more multiplies them by about 14; a table of 6x6 or 8x4
+takes some GB, and of the sizes above them is out of reach.
+
+### Their uses
+
+- `tests/tablebase.c` (`make test`) searches every position of a
+  database to a depth that reaches the end of every game, and checks
+  that the value is the database's and proved, that the move played
+  in a WIN leads to a LOSS of the database, and that a Win in N is
+  followed by a Loss in N - 1: the test `tablebase` on touchdown_db's
+  4x4 (`755591 positions, 220104 wins, 535487 losses, 0 differences`),
+  and `tablebase_6x4` and `tablebase_5x5` on the solver's, which checks
+  the solver too, by another way. 5x6 and larger take too long.
+- `tablebase eval` (the tests `evaldb`, on touchdown_db's 4x4, and
+  `evaldb_6x4`, `evaldb_5x5` and `evaldb_4x6`, on the solver's)
+  measures the engine's evaluation alone, `engine_eval` without a
+  search, in the positions that have a move: how often its sign is the
+  database's value, and how often the move it would play (one that
+  ends the game, or else the one whose position is worst for the
+  opponent) keeps a WIN. It reports all of them, those not won at once
+  by a move to the last rank, and, for touchdown_db's, those that can
+  come from the start (8077), and those of them not won at once
+  (3722); and, of those not won at once, how often a WIN is for each
+  tenth of the evaluation's probability of a win. It is a measure, not
+  a check, and its expected outputs change with the weights.
+- `tools/train.c --db FILE`, more than one (`make train`, `make
+  weights`, with the databases of `TRAIN_DBS`: touchdown_db's 4x4 and
+  the solver's 6x4, 5x5 and 4x6), checks the evaluation it learns in
+  the same way, with its weights as floats rather than the engine's
+  hundredths; and `--fit` learns them.
+- `solve --check FILE` solves every position of a database, and
+  compares them (the test `solve`, on touchdown_db's 4x4).
+
+Of the positions not won at once, the evaluation's sign is right for
+85% of 4x4's that can come from the start, 89% of 6x4's, 86% of 5x5's
+and 85% of 4x6's, where always guessing the more common value is
+right for 60%, 73%, 61% and 54%. On the larger boards it is too
+careful: of the positions of 6x4 and 5x5 that it gives 70 to 80%, 95%
+are a WIN.
+
+The figures of the README's evaluation are of the 3722 of 4x4, from
+touchdown_db's database alone (`TRAIN_DBS=build/gen/touchdown4x4.txt`
+for `--fit`):
 
 | Weights                                                 | Right |
 |---------------------------------------------------------|-------|
 | `make weights`: self-play on every size (and `evaldb`)  | 85%   |
 | the same, on every size but 4x4 (`--sizes`)             | 84%   |
-| `make train TRAIN_ARGS="--fit 100"`: 3x2, fit to the DB | 88%   |
-| `make train TRAIN_ARGS="--fit 100 --window 3x3"`        | 92%   |
+| `--fit 100`: 3x2, fit to the database                   | 88%   |
+| `--fit 100 --window 3x3`                                | 92%   |
 
-`--fit` shows how much a layout of windows can know of the 4x4 board
-at all. It takes seconds, where `make weights` takes five minutes.
+`--fit` shows how much a layout of windows can know of a board at
+all. It takes seconds, where `make weights` takes five minutes.
 
 ## The solver
 
@@ -146,8 +198,9 @@ it; the side to move wins if it has a free pawn no slower than every
 pawn of the opponent, and loses if the opponent has a free pawn faster
 than every pawn of its own. It saves 30 to 40% of the nodes.
 
-`--check FILE` solves every position of touchdown_db's 4x4 database
-and compares them; `--moves` gives the value of each move at the
+`--check FILE` solves every position of a database and compares
+them; `--dump FILE SIZE` writes the database of a size (The
+databases); `--moves` gives the value of each move at the
 root; `--order plain` tries the moves in the order of the move
 generator rather than the evaluation's, which on these boards takes
 about as many nodes; `--no-races` searches without the rule of races;
@@ -198,17 +251,17 @@ where the order of the search does not help.
 `tools/train.c` learns the weights of the engine's evaluation
 (`src/engine/eval.c`), an N-tuple network, by TD(λ) self-play on the
 host, on boards of the sizes of `--sizes`, and checks them against
-touchdown_db's 4x4 database: how often the sign of the evaluation is
-the database's value, and how often its move keeps a win, of all
-positions and of those that can come from the start. `--fit EPOCHS`
-learns the database itself instead, which shows how much the windows
-can know at all. Its comment has the details.
+the databases of `--db` (The databases): how often the sign of the
+evaluation is the database's value, and how often its move keeps a
+win. `--fit EPOCHS` learns the databases themselves instead, which
+shows how much the windows can know at all. Its comment has the
+details.
 
-`make train TRAIN_ARGS="..."` is for experiments. `make weights` learns
+`make train TRAIN_ARGS="..." TRAIN_DBS="..."` is for experiments. `make weights` learns
 the engine's weights with `WEIGHTS_ARGS` and writes them to
 `src/engine/eval_weights.h`, which is in git, with the command line
 that made them; a run is the same every time. After it, the tests that
-search, and `evaldb`, have new expected outputs.
+search, and those of `evaldb`, have new expected outputs.
 
 The test `evalcheck` (`train --check-engine`) checks that the engine's
 evaluation, written for speed, is the sum of the weights of the

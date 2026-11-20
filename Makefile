@@ -165,6 +165,12 @@ build/nice/perftsuite.bin: $(ENGINE) $(HEADERS) tests/perftsuite.c $(TOOLCHAIN)
 # make train is for experiments; make weights writes the engine's
 # weights, src/engine/eval_weights.h, which is in git. A run is the same
 # every time, so the weights are what WEIGHTS_ARGS make.
+# The databases they check against (--db): touchdown_db's of 4x4, and
+# the solver's of 6x4, 5x5 and 4x6, 1.5 million positions in all, which
+# a check takes a few seconds for. TRAIN_DBS can add others, such as
+# build/gen/solve_7x4.txt and build/gen/solve_6x5.txt, with 12 and 13
+# million positions, for --fit.
+TRAIN_DBS ?= build/gen/touchdown4x4.txt build/gen/solve_6x4.txt build/gen/solve_5x5.txt build/gen/solve_4x6.txt
 TRAIN_ARGS ?= --sizes all --games 3000000 --report 500000
 WEIGHTS_ARGS ?= --sizes all --games 10000000 --seed 1 --report 1000000
 
@@ -172,13 +178,13 @@ build/host/train: $(ENGINE) $(HEADERS) tools/train.c
 	@mkdir -p $(@D)
 	$(CC) $(FASTFLAGS) -o $@ $(ENGINE) tools/train.c -lm
 
-train: build/host/train build/gen/touchdown4x4.txt
+train: build/host/train $(TRAIN_DBS)
 	@mkdir -p build/train
-	build/host/train --db build/gen/touchdown4x4.txt --save build/train/weights.f32 $(TRAIN_ARGS)
+	build/host/train $(addprefix --db ,$(TRAIN_DBS)) --save build/train/weights.f32 $(TRAIN_ARGS)
 
-weights: build/host/train build/gen/touchdown4x4.txt
+weights: build/host/train $(TRAIN_DBS)
 	@mkdir -p build/train
-	build/host/train --db build/gen/touchdown4x4.txt $(WEIGHTS_ARGS) --save build/train/weights.f32 \
+	build/host/train $(addprefix --db ,$(TRAIN_DBS)) $(WEIGHTS_ARGS) --save build/train/weights.f32 \
 	  --header src/engine/eval_weights.h
 
 # The solver (tools/solve.c), on the host: whether the side to move
@@ -191,6 +197,15 @@ build/host/solve: $(ENGINE) $(HEADERS) tools/solve.c
 
 solve: build/host/solve
 	build/host/solve $(SOLVE_ARGS)
+
+# The databases of the solver: every position that can come from the
+# start of a size, with its value (tools/db.h), such as
+# build/gen/solve_6x4.txt. 7x4 and 6x5, the largest, have 12 and 13
+# million positions, and take 10 seconds each.
+build/gen/solve_%.txt: build/host/solve
+	@mkdir -p $(@D)
+	build/host/solve --hash 1024 --dump $@.tmp $* > /dev/null
+	mv $@.tmp $@
 
 # touchdown_db, and its database of the 4x4 board: the value of every
 # position with at most 4 pawns a side (tests/tablebase.c). It needs
@@ -219,13 +234,18 @@ build/host/tablebase: $(ENGINE) $(HEADERS) tests/tablebase.c
 test: host-test nice-test
 
 host-test: build/host/td_text build/host/perftsuite build/host/tablebase build/gen/touchdown4x4.txt \
-           build/host/train build/host/solve
+           build/host/train build/host/solve build/gen/solve_6x4.txt build/gen/solve_5x5.txt build/gen/solve_4x6.txt
 	@tools/runtest.sh host_evalcheck evalcheck /dev/null host build/host/train --check-engine 2700
 	@tools/runtest.sh host_text text tests/text.input host build/host/td_text
 	@tools/runtest.sh host_perft perft tests/perft.input host build/host/td_text
 	@tools/runtest.sh host_perftsuite5 perftsuite5 /dev/null host build/host/perftsuite 5 1000
 	@tools/runtest.sh host_tablebase tablebase build/gen/touchdown4x4.txt host build/host/tablebase 24
+	@tools/runtest.sh host_tablebase_6x4 tablebase_6x4 build/gen/solve_6x4.txt host build/host/tablebase 32
+	@tools/runtest.sh host_tablebase_5x5 tablebase_5x5 build/gen/solve_5x5.txt host build/host/tablebase 32
 	@tools/runtest.sh host_evaldb evaldb build/gen/touchdown4x4.txt host build/host/tablebase eval
+	@for s in 6x4 5x5 4x6; do \
+	  tools/runtest.sh host_evaldb_$$s evaldb_$$s build/gen/solve_$$s.txt host build/host/tablebase eval || exit 1; \
+	done
 	@tools/runtest.sh host_solve solve /dev/null host build/host/solve --hash 64 --order plain \
 	  --check build/gen/touchdown4x4.txt 4x4 5x4 6x4 7x4 4x5 5x5 6x5 4x6 5x6
 	@tools/runtest.sh host_search search tests/search.input host build/host/td_text

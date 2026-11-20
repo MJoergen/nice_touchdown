@@ -37,9 +37,15 @@
  * --moves prints the value of each move at the root, which solves
  * each of them.
  *
- * --check FILE solves every position of touchdown_db -d's dump of the
- * 4x4 board, as tests/tablebase.c reads it, with one table, and
- * compares them with touchdown_db's values.
+ * --check FILE solves every position of a database (tools/db.h), with
+ * one table, and compares them with its values.
+ *
+ * --dump FILE writes, as a database, every position that can come
+ * from its one argument, with its value: a search of every move, with
+ * no rule of races and no stop at a move that wins, and with a table
+ * that keeps every position (a full bucket of it gives on to the
+ * next), so that each comes once. A position, the same with the other
+ * side to move, and their mirrors come as one, as they share an entry.
  *
  * It prints the value and the nodes, and then the time on a line of
  * its own, which tests/solve.grep leaves out.
@@ -53,12 +59,14 @@
 #include <string.h>
 #include <time.h>
 #include "../src/engine/engine.h"
+#include "db.h"
 
 static int order_eval = 1;
 static int show_moves;
 static int use_races = 1;
 static long hash_mb = 1024;
 static const char *check_file;
+static const char *dump_file;
 
 static int files, ranks;
 static int n_threads = 1;
@@ -90,7 +98,11 @@ typedef struct
 
 static entry_t *table;
 static uint64_t n_buckets;
-static uint16_t mirror[1 << ENGINE_MAX_FILES];
+
+// The buckets an entry may go to, from the one of its key: 1, when a
+// full bucket loses an entry to a new one; more for --dump, which
+// must keep every position, and stops when they are all full.
+static int spill = 1;
 
 static void table_init(void)
 {
@@ -116,70 +128,48 @@ static void set_size(int f, int r)
 {
     files = f;
     ranks = r;
-    for (int x = 0; x < 1 << f; x++)
-    {
-        int m = 0;
-        for (int i = 0; i < f; i++)
-            if (x >> i & 1)
-                m |= 1 << (f - 1 - i);
-        mirror[x] = (uint16_t) m;
-    }
 }
 
-// The pawns of side c on rank r (from White's side), files bits.
-static uint32_t rank_bits(const position_t *p, int c, int r)
-{
-    return p->pawns[c][r / 2] >> (16 * (r % 2)) & 0xfff;
-}
+#define rank_bits db_rank_bits
 
-// The key of p, which must have a move: the smaller of it and its
-// mirror.
+// The key of p, which must not be over (db.h).
 static entry_t key(const position_t *p)
 {
-    int me = p->side, you = !me;
-    uint64_t a = 0, b = 0, ma = 0, mb = 0;
-    for (int r = 0; r < ranks; r++)
-    {
-        // r is the rank as the side to move sees it.
-        int rr = me == WHITE ? r : ranks - 1 - r;
-        uint32_t mine = rank_bits(p, me, rr), yours = rank_bits(p, you, rr);
-        if (r < ranks - 1)
-        {
-            a |= (uint64_t) mine << (r * files);
-            ma |= (uint64_t) mirror[mine] << (r * files);
-        }
-        if (r > 0)
-        {
-            b |= (uint64_t) yours << ((r - 1) * files);
-            mb |= (uint64_t) mirror[yours] << ((r - 1) * files);
-        }
-    }
-    entry_t k = {a, b};
-    if (ma < a || (ma == a && mb < b))
-        k.a = ma, k.b = mb;
-    return k;
+    db_key_t k = db_key(p);
+    entry_t e = {k.a, k.b};
+    return e;
 }
 
-static entry_t *bucket(entry_t k)
+static uint64_t bucket_of(entry_t k)
 {
     uint64_t h = k.a * UINT64_C(0x9e3779b97f4a7c15) ^ k.b * UINT64_C(0xc2b2ae3d27d4eb4f);
     h ^= h >> 31;
     h *= UINT64_C(0xbf58476d1ce4e5b9);
     h ^= h >> 29;
-    return table + (h & (n_buckets - 1)) * BUCKET;
+    return h & (n_buckets - 1);
+}
+
+static entry_t *bucket(entry_t k, int j)
+{
+    return table + ((bucket_of(k) + (uint64_t) j) & (n_buckets - 1)) * BUCKET;
 }
 
 // The value of k in the table: 1 a WIN, 0 a LOSS, -1 not in it.
 static int probe(entry_t k)
 {
-    entry_t *e = bucket(k);
-    for (int i = 0; i < BUCKET; i++)
+    for (int j = 0; j < spill; j++)
     {
-        // b is kept as b ^ a, so that an entry that two threads wrote
-        // at once, half of each, matches no key.
-        uint64_t a = e[i].a, b = e[i].b ^ a;
-        if ((a & KEY_MASK) == k.a && (b & KEY_MASK) == k.b && a)
-            return (int) (b >> 63);
+        entry_t *e = bucket(k, j);
+        for (int i = 0; i < BUCKET; i++)
+        {
+            // b is kept as b ^ a, so that an entry that two threads
+            // wrote at once, half of each, matches no key.
+            uint64_t a = e[i].a, b = e[i].b ^ a;
+            if (!a)
+                return -1; // The buckets after it have none of k.
+            if ((a & KEY_MASK) == k.a && (b & KEY_MASK) == k.b)
+                return (int) (b >> 63);
+        }
     }
     return -1;
 }
@@ -189,7 +179,22 @@ static void store(entry_t k, int win, uint64_t work)
     int w = 0;
     while (w < 15 && work >> (w + 1))
         w++;
-    entry_t *e = bucket(k), *victim = e;
+    entry_t *e = bucket(k, 0), *victim = e;
+    for (int j = 1; spill > 1 && j <= spill; j++)
+    {
+        // --dump: the first free entry of the buckets.
+        int i = 0;
+        while (i < BUCKET && e[i].a)
+            i++;
+        if (i < BUCKET)
+            break;
+        if (j == spill)
+        {
+            fprintf(stderr, "solve: the table is full; a larger --hash\n");
+            exit(1);
+        }
+        e = victim = bucket(k, j);
+    }
     for (int i = 0; i < BUCKET; i++)
     {
         if (!e[i].a || ((e[i].a & KEY_MASK) == k.a && ((e[i].b ^ e[i].a) & KEY_MASK) == k.b))
@@ -437,9 +442,10 @@ static double now(void)
     return ts.tv_sec + ts.tv_nsec * 1e-9;
 }
 
-static void solve_arg(const char *arg)
+// The position of an argument, a size for its start or a position as
+// text, and its size set.
+static void parse_arg(const char *arg, position_t *p)
 {
-    position_t p;
     int f, r;
     char c;
     if (sscanf(arg, "%dx%d%c", &f, &r, &c) == 2)
@@ -449,14 +455,20 @@ static void solve_arg(const char *arg)
             fprintf(stderr, "solve: no size %s\n", arg);
             exit(2);
         }
-        engine_start(&p);
+        engine_start(p);
     }
-    else if (engine_set_position(&p, arg))
+    else if (engine_set_position(p, arg))
     {
         fprintf(stderr, "solve: not a position: %s\n", arg);
         exit(2);
     }
     set_size(engine_files(), engine_ranks());
+}
+
+static void solve_arg(const char *arg)
+{
+    position_t p;
+    parse_arg(arg, &p);
     table_clear();
 
     char text[ENGINE_POSITION_STR_SIZE], ms[8];
@@ -482,47 +494,90 @@ static void solve_arg(const char *arg)
     }
 }
 
-// Solves the positions of touchdown_db -d's dump, and compares them.
+// Solves every position of a database (db.h), and compares them.
 static int check(const char *file)
 {
-    FILE *fp = fopen(file, "r");
+    db_t db;
+    db_load(&db, file);
+    set_size(db.files, db.ranks);
+    table_clear();
+    long wins = 0, losses = 0, diffs = 0;
+    char text[ENGINE_POSITION_STR_SIZE];
+    for (long i = 0; i < db.n; i++)
+    {
+        int win = solve(&db.pos[i]);
+        wins += db.win[i];
+        losses += !db.win[i];
+        if (win != db.win[i] && diffs++ < 10)
+            printf("%s: the database has %s, solve %s\n", engine_position_str(&db.pos[i], text),
+                   db.win[i] ? "WIN" : "LOSS", win ? "WIN" : "LOSS");
+    }
+    printf("solve %dx%d: %ld positions, %ld wins, %ld losses, %ld differences\n", db.files, db.ranks, db.n,
+           wins, losses, diffs);
+    return diffs != 0;
+}
+
+/***************************************************************
+ * --dump: every position that can come from the root
+ ***************************************************************/
+
+static long dump_n, dump_wins;
+
+// Writes to fp each position that can come from p, which has n moves,
+// list, and is not yet in the table, with its value, after those that
+// can come from it; and returns the value of p. It searches every
+// move, without the rule of races, so that it comes to every position.
+static int dump_moves(const position_t *p, const move_t *list, int n, FILE *fp)
+{
+    nodes++;
+    entry_t k = key(p);
+    int v = probe(k);
+    if (v >= 0)
+        return v;
+    int win = 0;
+    for (int i = 0; i < n; i++)
+    {
+        position_t q;
+        move_t l2[ENGINE_MAX_MOVES];
+        engine_make(p, list[i], &q);
+        int n2 = engine_moves(&q, l2);
+        // A move to the last rank leaves the opponent no move.
+        if (n2 == 0 || !dump_moves(&q, l2, n2, fp))
+            win = 1;
+    }
+    store(k, win, 1);
+    char text[ENGINE_POSITION_STR_SIZE];
+    fprintf(fp, "%s %s\n", engine_position_str(p, text), win ? "WIN" : "LOSS");
+    dump_n++;
+    dump_wins += win;
+    return win;
+}
+
+static int dump(const char *file, const position_t *p)
+{
+    FILE *fp = fopen(file, "w");
     if (!fp)
     {
         perror(file);
         return 1;
     }
-    char line[256], t[24];
-    long n = 0, wins = 0, losses = 0, diffs = 0;
-    engine_set_size(4, 4);
-    set_size(4, 4);
+    move_t list[ENGINE_MAX_MOVES];
+    int n = db_over(p) ? 0 : engine_moves(p, list);
     table_clear();
-    while (fgets(line, sizeof line, fp))
+    spill = 64;
+    dump_n = dump_wins = 0;
+    if (n)
+        dump_moves(p, list, n, fp);
+    spill = 1;
+    if (fclose(fp))
     {
-        char *s = strchr(line, ':');
-        if (!s)
-            continue;
-        s += 2;
-        for (int r = 0; r < 4; r++, s += 5)
-        {
-            memcpy(t + r * 5, s, 4);
-            t[r * 5 + 4] = r < 3 ? '/' : ' ';
-        }
-        t[20] = 'x';
-        t[21] = '\0';
-        position_t p;
-        if (engine_set_position(&p, t))
-            continue;
-        int db = strstr(line, "WIN") != NULL;
-        int win = solve(&p);
-        n++;
-        wins += db;
-        losses += !db;
-        if (win != db && diffs++ < 10)
-            printf("%s: touchdown_db has %s, solve %s\n", t, db ? "WIN" : "LOSS", win ? "WIN" : "LOSS");
+        perror(file);
+        return 1;
     }
-    fclose(fp);
-    printf("solve 4x4: %ld positions, %ld wins, %ld losses, %ld differences\n", n, wins, losses, diffs);
-    return diffs != 0;
+    char text[ENGINE_POSITION_STR_SIZE];
+    printf("dump %dx%d %s: %ld positions, %ld wins, %ld losses, %llu nodes\n", files, ranks,
+           engine_position_str(p, text), dump_n, dump_wins, dump_n - dump_wins, (unsigned long long) nodes);
+    return 0;
 }
 
 static void usage(void)
@@ -535,7 +590,9 @@ static void usage(void)
             "  --threads N    N threads, which share the table (1)\n"
             "  --no-races     without the rule of free pawns\n"
             "  --moves        the value of each move at the root\n"
-            "  --check FILE   solve touchdown_db -d's dump of the 4x4 board, and compare\n");
+            "  --check FILE   solve every position of a database (tools/db.h), and compare\n"
+            "  --dump FILE    write every position that can come from the one argument, with\n"
+            "                 its value, as a database\n");
     exit(2);
 }
 
@@ -559,6 +616,8 @@ int main(int argc, char **argv)
             hash_mb = atol(argv[++i]);
         else if (i + 1 < argc && !strcmp(a, "--check"))
             check_file = argv[++i];
+        else if (i + 1 < argc && !strcmp(a, "--dump"))
+            dump_file = argv[++i];
         else if (i + 1 < argc && !strcmp(a, "--order"))
         {
             const char *v = argv[++i];
@@ -572,9 +631,15 @@ int main(int argc, char **argv)
         else
             usage();
     }
-    if (hash_mb < 1 || (i == argc && !check_file))
+    if (hash_mb < 1 || (i == argc && !check_file) || (dump_file && i != argc - 1))
         usage();
     table_init();
+    if (dump_file)
+    {
+        position_t p;
+        parse_arg(argv[i], &p);
+        return dump(dump_file, &p);
+    }
     int status = check_file ? check(check_file) : 0;
     for (; i < argc; i++)
         solve_arg(argv[i]);
