@@ -9,7 +9,7 @@ A release is named `Vmajor.minor`, and its files are
 names the nice_cpu tag the release is built with, and the NiceMonMEGA65
 release it was checked on.
 
-## V1.2 (not yet released)
+## V1.2 (2026-11-22)
 
 **The engine**
 
@@ -28,7 +28,8 @@ release it was checked on.
   not those from which the engine's search fails to win more often
   than from the best. The default, 8x6, is a win for White.
 
-Built with nice_cpu V2.4.
+Built with nice_cpu V2.4, and checked on a MEGA65 R6 with
+NiceMonMEGA65 V2.4.1.
 
 ## V1.1 (2026-11-19)
 
