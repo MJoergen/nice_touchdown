@@ -5,8 +5,8 @@
 # commit. make deps fetches them into deps/. NICE_CPU=DIR and NICEEMU=PATH use local
 # copies of nice_cpu and niceemu instead. make help lists the targets.
 
-NICE_CPU_TAG    := V2.0
-NICEEMU_SHA256  := 7726cfdf6c86513d156ed75e52c287a7d88ef0c82c7bb49fa02558dde0cf7cf1
+NICE_CPU_TAG    := V2.4
+NICEEMU_SHA256  := be38ad95b204b712b911a79e34cd0222ed91409724fb23b697819a2d76df0389
 TOUCHDOWN_DB_COMMIT := 2e00db4dbc666ff60e656b992d097e92a889d517
 
 NICE_CPU ?= deps/nice_cpu-$(NICE_CPU_TAG)

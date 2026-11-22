@@ -28,6 +28,8 @@ release it was checked on.
   not those from which the engine's search fails to win more often
   than from the best. The default, 8x6, is a win for White.
 
+Built with nice_cpu V2.4.
+
 ## V1.1 (2026-11-19)
 
 An evaluation, learned by self-play, which makes the engine much
